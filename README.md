@@ -91,14 +91,38 @@ npm test
 ## 🏗️ Estrutura do Projeto
 
 ```
-src/
-  ├── config/           # Configurações
-  │   ├── index.ts     # Carregamento de configurações
-  │   ├── env.ts       # Gerenciamento de ambiente
-  │   └── validator.ts # Validação de configuração
-  ├── util/            # Utilitários
-  │   └── CsvParser.ts # Parser de arquivos CSV
-  └── __tests__/       # Testes
+/
+├── src/                          # Código fonte
+│   ├── api/                      # Implementações de APIs
+│   ├── auth/                     # Autenticação e autorização
+│   ├── config/                   # Configurações
+│   │   ├── index.ts             # Exportação das configurações
+│   │   ├── env.ts               # Gerenciamento de ambiente
+│   │   └── validator.ts         # Validação de configuração
+│   ├── controllers/             # Controladores da aplicação
+│   ├── devices/                 # Lógica relacionada aos dispositivos
+│   │   └── deviceChecker.ts     # Verificador de dispositivos
+│   ├── resources/               # Recursos estáticos e templates
+│   ├── services/                # Serviços da aplicação
+│   ├── static/                  # Arquivos estáticos
+│   ├── types/                   # Definições de tipos TypeScript
+│   ├── util/                    # Utilitários
+│   │   └── CsvParser.ts        # Parser de arquivos CSV
+│   ├── workers/                 # Workers para processamento paralelo
+│   ├── main.ts                 # Ponto de entrada da aplicação
+│   └── configureTR069.ts       # Configuração TR-069
+│ 
+├── scripts/                     # Scripts de automação
+├── dist/                       # Código compilado
+├── node_modules/              # Dependências
+├── .env.example              # Exemplo de variáveis de ambiente
+├── .env.test                 # Variáveis de ambiente para testes
+├── .env.production          # Variáveis de ambiente para produção
+├── .dockerignore            # Arquivos ignorados pelo Docker
+├── .gitignore              # Arquivos ignorados pelo Git
+├── jest.config.ts          # Configuração do Jest
+├── package.json           # Configuração do projeto e dependências
+└── tsconfig.json        # Configuração do TypeScript
 ```
 
 ## 🧪 Testes

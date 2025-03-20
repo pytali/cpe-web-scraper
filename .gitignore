@@ -39,3 +39,7 @@ Thumbs.db
 package-lock.json
 cpe-web-access.iml
 *.iml
+
+# Devices
+devices.json
+loginerror.json

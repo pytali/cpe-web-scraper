@@ -2,28 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
-const copyFile = promisify(fs.copyFile);
 const writeFile = promisify(fs.writeFile);
 const access = promisify(fs.access);
 
 async function setup() {
     const rootDir = path.resolve(__dirname, '..');
-    const configDir = path.join(rootDir, 'src', 'config');
-    const templatePath = path.join(configDir, 'index.ts.template');
-    const configPath = path.join(configDir, 'index.ts');
     const envPath = path.join(rootDir, '.env');
 
     try {
-        // Verifica se o arquivo de configuração já existe
-        try {
-            await access(configPath);
-            console.log('⚠️  Arquivo de configuração já existe. Pulando...');
-        } catch {
-            // Copia o template para o arquivo de configuração
-            await copyFile(templatePath, configPath);
-            console.log('✅ Arquivo de configuração criado com sucesso!');
-        }
-
         // Verifica se o arquivo .env já existe
         try {
             await access(envPath);
@@ -61,8 +47,7 @@ WORKER_POOL_SIZE="1"`;
             console.log('✅ Arquivo .env criado com sucesso!');
         }
 
-        console.log('\n🎉 Setup concluído! Por favor, atualize as configurações nos arquivos:');
-        console.log(`- ${configPath}`);
+        console.log('\n🎉 Setup concluído! Por favor, atualize as configurações no arquivo:');
         console.log(`- ${envPath}`);
     } catch (error) {
         console.error('❌ Erro durante o setup:', error);

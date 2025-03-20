@@ -79,6 +79,52 @@ npm run start:prod
 npm test
 ```
 
+## 🔧 Setup Inicial
+
+O projeto inclui um script de setup automatizado que configura o ambiente inicial. Este script é executado automaticamente após a instalação (`npm install`), mas você também pode executá-lo manualmente:
+
+```bash
+npm run setup
+```
+
+### O que o setup faz?
+
+O script de setup verifica e configura o ambiente básico necessário para executar o projeto:
+
+1. **Arquivo de Ambiente**
+   - Verifica se o arquivo `.env` existe
+   - Se não existir, cria um novo arquivo com valores de exemplo
+   - Se já existir, mantém o arquivo atual sem alterações
+
+### Após o Setup
+
+Depois que o setup for concluído, você precisa:
+
+1. Editar o arquivo `.env` com suas configurações reais:
+   - Tokens de autenticação do IXC
+   - URLs dos serviços
+   - Credenciais TR-069
+   - Configurações de dispositivos
+   - Parâmetros dos workers
+
+2. (Opcional) Criar arquivos de ambiente específicos:
+   - `.env.development` para desenvolvimento
+   - `.env.production` para produção
+   - `.env.test` para testes
+   - `.env.local` para configurações locais
+
+### Validação do Setup
+
+Para verificar se o setup foi concluído corretamente:
+
+```bash
+# Executa os testes de configuração
+npm test src/config/__tests__/validator.test.ts
+
+# Inicia em modo desenvolvimento para testar
+npm run dev
+```
+
 ## 📦 Scripts Disponíveis
 
 - `npm start`: Inicia a aplicação
@@ -87,6 +133,7 @@ npm test
 - `npm run start:prod`: Inicia em modo produção
 - `npm test`: Executa os testes
 - `npm run test:watch`: Executa os testes em modo watch
+- `npm run setup`: Executa o setup inicial do projeto
 
 ## 🏗️ Estrutura do Projeto
 
@@ -148,4 +195,3 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 - [Documentação do Puppeteer](https://pptr.dev/)
 - [Documentação do Jest](https://jestjs.io/docs/getting-started)
 - [Documentação do Zod](https://zod.dev/)
-# Teste

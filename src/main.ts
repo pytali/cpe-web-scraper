@@ -1,10 +1,12 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { readIPColumnFromCSV } from "./util/CsvParser";
+import { readIPColumnFromCSV } from "./util/CsvParser.js";
 import { stringify } from 'csv-stringify';
 import csvParser from 'csv-parser';
-import WorkerPool from "./workers/WorkerPool";
-import { DEVICE_CONFIG, WORKER_CONFIG } from "./config";
+import WorkerPool from "./workers/WorkerPool.js";
+import { DEVICE_CONFIG, WORKER_CONFIG } from "./config/index.js";
+import { configureDevices } from "./configureTR069.js";
+import { DeviceChecker } from "./deviceChecker.js";
 
 if (WORKER_CONFIG.batchSize < 1 || WORKER_CONFIG.poolSize < 1) {
     throw new Error('❌ Batch size and pool size must be greater than 0');

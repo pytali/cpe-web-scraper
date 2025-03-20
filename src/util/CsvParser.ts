@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as csv from 'csv-parser';
+import * as fs from 'node:fs';
+import csvParser from 'csv-parser';
 
 /**
  * Reads IP addresses from a CSV file at the given `filePath`.
@@ -30,7 +30,7 @@ export async function readIPColumnFromCSV(filePath: string): Promise<string[]> {
     return new Promise((resolve, reject) => {
         const ips: string[] = [];
         fs.createReadStream(filePath)
-            .pipe(csv())
+            .pipe(csvParser())
             .on('data', (row: { ip: string; }) => {
                 if (row.ip) {
                     ips.push(row.ip);

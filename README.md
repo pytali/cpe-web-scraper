@@ -1,153 +1,126 @@
 # CPE Web Scraper
 
+Um web scraper para CPEs usando Puppeteer e integração com API IXC.
+
 ## 📝 Descrição
-Um web scraper automatizado desenvolvido em TypeScript que integra com a API do IXC para gerenciamento e configuração de dispositivos CPE (Customer Premises Equipment). O projeto utiliza Puppeteer para automação web e oferece funcionalidades para configuração TR-069. Com um sistema robusto de workers para processamento paralelo, o projeto é capaz de lidar com grandes volumes de dispositivos de forma eficiente e escalável.
 
-## 🚀 Tecnologias Utilizadas
-- TypeScript
-- Node.js
-- Puppeteer
-- Axios
-- Jest (para testes)
-- CSV Parser/Stringify
-- Sistema de Workers para Processamento Paralelo
-- Gerenciamento de Threads
+Este projeto é um web scraper automatizado que interage com CPEs (Customer Premises Equipment) através de suas interfaces web e integra com a API do IXC para gerenciamento e coleta de dados.
 
-## 📋 Pré-requisitos
-- Node.js (versão LTS recomendada)
-- npm ou yarn
-- Acesso à API do IXC
-- Credenciais necessárias para autenticação
+## 🚀 Configuração
 
-## 🔧 Instalação
+O projeto utiliza variáveis de ambiente para configuração. Copie o arquivo `.env.example` e crie os arquivos de ambiente necessários:
 
-1. Clone o repositório
 ```bash
-git clone https://github.com/seu-usuario/cpe-web-scraper.git
-cd cpe-web-scraper
+# Desenvolvimento
+cp .env.example .env.development
+
+# Produção
+cp .env.example .env.production
+
+# Testes
+cp .env.example .env.test
+
+# Local (opcional)
+cp .env.example .env.local
 ```
 
-2. Instale as dependências
+### 📋 Variáveis de Ambiente
+
+#### Configuração IXC
+- `IXC_CDY_TOKEN`: Token de autenticação para Candeias (formato: XX:hash)
+- `IXC_CDY_URL`: URL base da API IXC Candeias
+- `IXC_BD_TOKEN`: Token de autenticação para Brasil Digital
+- `IXC_BD_URL`: URL base da API IXC Brasil Digital
+- `IXC_BR364_TOKEN`: Token de autenticação para BR364
+- `IXC_BR364_URL`: URL base da API IXC BR364
+
+#### Configuração TR-069
+- `TR069_URL`: URL do servidor ACS
+- `TR069_USERNAME`: Usuário do ACS
+- `TR069_PASSWORD`: Senha do ACS (mínimo 8 caracteres)
+- `TR069_CONN_USERNAME`: Usuário para requisições de conexão
+- `TR069_CONN_PASSWORD`: Senha para requisições de conexão (mínimo 8 caracteres)
+- `TR069_INFORM_INTERVAL`: Intervalo de informação em segundos (300-86400)
+
+#### Configuração de Dispositivos
+- `DEVICE_PORT`: Porta para conexão com CPEs (1-65535)
+- `DEVICE_USERS`: Lista de usuários separados por vírgula
+- `DEVICE_PASSWORDS`: Lista de senhas separadas por vírgula
+
+#### Configuração de Workers
+- `WORKER_BATCH_SIZE`: Tamanho do lote de processamento (1-100)
+- `WORKER_POOL_SIZE`: Número de workers paralelos (1-10)
+
+### 🔒 Validação de Configuração
+
+O projeto inclui validação automática das configurações usando Zod. As seguintes regras são aplicadas:
+
+- Tokens IXC devem estar no formato XX:hash
+- URLs não devem terminar com barra
+- Senhas TR-069 devem ter no mínimo 8 caracteres
+- Porta de dispositivo deve estar entre 1 e 65535
+- Tamanho do lote de workers deve estar entre 1 e 100
+- Número de workers deve estar entre 1 e 10
+- Intervalo de informação TR-069 deve estar entre 300 e 86400 segundos
+
+## 🛠️ Instalação
+
 ```bash
+# Instala as dependências
 npm install
-# ou
-yarn install
-```
 
-3. Configure o arquivo de configuração:
-```bash
-cp src/config/index.ts.template src/config/index.ts
-```
-Edite o arquivo `src/config/index.ts` com suas credenciais:
-- Tokens de API do IXC para cada provedor
-- URLs base dos serviços
-- Outras configurações necessárias
+# Inicia em desenvolvimento
+npm run dev
 
-O arquivo `index.ts.template` serve como exemplo e documentação das configurações necessárias.
+# Inicia em produção
+npm run start:prod
 
-4. Configure as demais variáveis de ambiente necessárias para:
-- Credenciais de acesso
-- URLs dos serviços
-- Configurações do IXC
-- Outras configurações específicas do ambiente
-
-5. Compile e execute o projeto
-```bash
-npm start
-# ou
-yarn start
-```
-
-## 📁 Estrutura do Projeto
-```
-src/
-├── api/          # Integrações com APIs externas
-├── auth/         # Lógica de autenticação
-├── config/       # Configurações do projeto
-├── controllers/  # Controladores da aplicação
-├── devices/      # Lógica relacionada aos dispositivos
-├── resources/    # Recursos estáticos
-├── services/     # Serviços da aplicação
-├── static/       # Arquivos estáticos
-├── types/        # Definições de tipos TypeScript
-├── util/         # Utilitários
-└── workers/      # Workers para processamento paralelo
-```
-
-## 🛠️ Principais Funcionalidades
-- Sistema avançado de workers para processamento paralelo
-  - Distribuição automática de carga
-  - Processamento simultâneo de múltiplos dispositivos
-  - Recuperação automática de falhas
-  - Monitoramento em tempo real
-- Automação web com Puppeteer
-- Integração com API do IXC
-- Configuração TR-069 para dispositivos
-- Verificação de status de dispositivos
-- Processamento de dados em CSV
-
-## 🔄 Sistema de Workers
-O projeto implementa um sistema sofisticado de processamento paralelo através de workers, oferecendo:
-
-### Características
-- Processamento distribuído de dispositivos
-- Balanceamento automático de carga
-- Recuperação de falhas e retry automático
-- Monitoramento de performance
-- Escalabilidade horizontal
-
-### Benefícios
-- Aumento significativo de performance
-- Melhor utilização de recursos
-- Processamento mais rápido de grandes volumes de dados
-- Maior resiliência a falhas
-- Capacidade de escalar conforme necessidade
-
-### Configuração
-Para otimizar o uso dos workers, configure no arquivo de ambiente:
-```bash
-WORKER_COUNT=4              # Número de workers paralelos
-WORKER_BATCH_SIZE=100      # Tamanho do lote por worker
-WORKER_RETRY_ATTEMPTS=3    # Tentativas de retry em caso de falha
-```
-
-### Monitoramento
-O sistema oferece métricas em tempo real:
-- Taxa de processamento por worker
-- Tempo médio de processamento
-- Taxa de sucesso/falha
-- Uso de recursos
-
-## 📦 Scripts Disponíveis
-- `npm start`: Compila o TypeScript e executa o projeto
-- `npm test`: Executa os testes com Jest
-
-## 🔍 Testes
-O projeto utiliza Jest para testes. Para executar a suite de testes:
-```bash
+# Executa os testes
 npm test
 ```
 
-## 🤝 Contribuição
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/NomeFeature`)
-3. Commit suas mudanças (`git commit -m 'Adiciona nova feature'`)
-4. Push para a branch (`git push origin feature/NomeFeature`)
-5. Abra um Pull Request
+## 📦 Scripts Disponíveis
 
-## ⚠️ Notas Importantes
-- Certifique-se de ter todas as credenciais necessárias configuradas antes de executar
-- NUNCA comite o arquivo `src/config/index.ts` - ele contém informações sensíveis
-- Use `src/config/index.ts.template` como referência para configuração
-- O projeto requer acesso à internet para funcionar corretamente
-- Algumas funcionalidades podem requerer permissões específicas no IXC
-- Configure adequadamente o número de workers de acordo com os recursos disponíveis
-- Monitore o uso de memória e CPU ao aumentar o número de workers
+- `npm start`: Inicia a aplicação
+- `npm run dev`: Inicia em modo desenvolvimento
+- `npm run build`: Compila o projeto
+- `npm run start:prod`: Inicia em modo produção
+- `npm test`: Executa os testes
+- `npm run test:watch`: Executa os testes em modo watch
+
+## 🏗️ Estrutura do Projeto
+
+```
+src/
+  ├── config/           # Configurações
+  │   ├── index.ts     # Carregamento de configurações
+  │   ├── env.ts       # Gerenciamento de ambiente
+  │   └── validator.ts # Validação de configuração
+  ├── util/            # Utilitários
+  │   └── CsvParser.ts # Parser de arquivos CSV
+  └── __tests__/       # Testes
+```
+
+## 🧪 Testes
+
+O projeto usa Jest para testes. Os testes estão localizados em `src/__tests__/`.
+A cobertura de testes pode ser visualizada após executar `npm test` no diretório `coverage/`.
+
+## 🤝 Contribuição
+
+1. Faça o fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
+3. Faça commit das suas alterações (`git commit -am 'Adiciona nova feature'`)
+4. Faça push para a branch (`git push origin feature/nova-feature`)
+5. Crie um Pull Request
 
 ## 📄 Licença
-Este projeto está sob a licença MIT.
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
 ## 🔗 Links Úteis
-- [Documentação do Puppeteer](https://pptr.dev/)
+
 - [Documentação do TypeScript](https://www.typescriptlang.org/docs/)
-- [Documentação da API do IXC](https://ixc-api.com/docs) <!-- Substitua pelo link correto -->
+- [Documentação do Puppeteer](https://pptr.dev/)
+- [Documentação do Jest](https://jestjs.io/docs/getting-started)
+- [Documentação do Zod](https://zod.dev/)

@@ -1,9 +1,41 @@
-node_modules
-dist
+# Dependências
+node_modules/
+dist/
+
+# Arquivos de ambiente
+.env
+.env.local
+.env.*.local
+.env.production
+!.env.example
+
+# Arquivos de teste
+coverage/
+
+# Arquivos de log
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos de IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Arquivos de build
+*.js.map
+*.d.ts
+
+# Arquivos temporários
+*.tmp
+*.temp
+
 package-lock.json
-coverage
-.idea
 cpe-web-access.iml
-src/**/*.test.ts
-src/config/index.ts
 *.iml

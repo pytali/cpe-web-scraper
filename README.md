@@ -174,7 +174,7 @@ npm run dev
 
 ## 🧪 Testes
 
-O projeto usa Jest para testes. Os testes estão localizados em `src/__tests__/`.
+O projeto usa Jest para testes. Os testes estão localizados em `src/config/__tests__/`.
 A cobertura de testes pode ser visualizada após executar `npm test` no diretório `coverage/`.
 
 ## 🤝 Contribuição

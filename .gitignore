@@ -43,3 +43,9 @@ cpe-web-access.iml
 # Devices
 devices.json
 loginerror.json
+
+# Arquivos sensíveis
+src/devices/f680.ts
+src/devices/f6600p.ts
+main.ts
+configureTR069.ts

@@ -2,7 +2,7 @@
  * Handles the login process to a TR-069 device, including navigating to the
  * device's URL, attempting multiple passwords, and reporting login status.
  */
-import puppeteer from 'puppeteer-extra';
+import puppeteer from 'puppeteer';
 import { Browser, BrowserContext, Page } from 'puppeteer';
 
 export class Login {
@@ -62,7 +62,7 @@ export class Login {
      * an object containing the Puppeteer page and login status, or an Error if
      * loading the page or logging in fails.
      */
-    async launch(): Promise<{page: Page, login: boolean} | Error> {
+    async launch(): Promise<{ page: Page, login: boolean } | Error> {
         this.browser = await puppeteer.launch({
             headless: false,
             defaultViewport: null,

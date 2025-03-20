@@ -101,8 +101,7 @@ npm test
 │   │   └── validator.ts         # Validação de configuração
 │   ├── controllers/             # Controladores da aplicação
 │   ├── devices/                 # Lógica relacionada aos dispositivos
-│   │   └── deviceChecker.ts     # Verificador de dispositivos
-│   ├── resources/               # Recursos estáticos e templates
+│   ├── resources/               # Recursos estáticos (Localização do CSV)
 │   ├── services/                # Serviços da aplicação
 │   ├── static/                  # Arquivos estáticos
 │   ├── types/                   # Definições de tipos TypeScript
@@ -110,7 +109,8 @@ npm test
 │   │   └── CsvParser.ts        # Parser de arquivos CSV
 │   ├── workers/                 # Workers para processamento paralelo
 │   ├── main.ts                 # Ponto de entrada da aplicação
-│   └── configureTR069.ts       # Configuração TR-069
+│   ├── configureTR069.ts       # Configuração TR-069
+│   └── deviceChecker.ts        # Verifica o modelo do CPE
 │ 
 ├── scripts/                     # Scripts de automação
 ├── dist/                       # Código compilado

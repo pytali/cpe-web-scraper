@@ -1,0 +1,7 @@
+coverage
+.idea
+.gitignore
+node_modules
+package-lock.json
+dist/**/*.example.ts
+src

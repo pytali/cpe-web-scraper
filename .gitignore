@@ -1,0 +1,9 @@
+node_modules
+dist
+package-lock.json
+coverage
+.idea
+cpe-web-access.iml
+src/**/*.test.ts
+src/config/index.ts
+*.iml

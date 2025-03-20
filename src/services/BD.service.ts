@@ -3,9 +3,9 @@
  * AxiosResponse is used to handle HTTP requests and responses.
  * Clearmac, IxcData, and Radusuarios are types for typed responses.
  */
-import IXCApi, {IXCBASE} from '../api/IXCApi.class';
-import {AxiosResponse} from 'axios';
-import {Clearmac, IxcData, Radusuarios} from '../types';
+import IXCApi, { IXCBASE } from '../api/IXCApi.class';
+import { AxiosResponse } from 'axios';
+import { Clearmac, IxcData, Radusuarios } from '../types';
 
 /**
  * Clears the MAC address associated with a specific ID in the BD base.
@@ -28,7 +28,7 @@ async function clearMacBD(id: string): Promise<Clearmac | Error> {
     });
 
     if (!response) {
-        return new Error('Erro ao buscar ID', response);
+        return new Error('Erro ao buscar ID' + response);
     }
 
     return response.data;
@@ -52,7 +52,7 @@ async function getLoginBD(login: string): Promise<Error | Radusuarios> {
     });
 
     if (!response) {
-        return new Error('Erro ao buscar login', response);
+        return new Error('Erro ao buscar login' + response);
     }
 
     if (response.data.registros) {

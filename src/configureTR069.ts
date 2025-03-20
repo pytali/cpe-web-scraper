@@ -97,13 +97,14 @@ export async function configureDevices(deviceIP: string, loginUser: string): Pro
     /**
      * Depending on the detected device, initialize and run its configuration routine.
      */
-    if (detectedDevice === 'F680' || 'F670L_OLD') {
-        console.log(detectedDevice);
+    if (detectedDevice === 'F680' || detectedDevice === 'F670L_OLD') {
+        // console.log(detectedDevice);
         const device = new F680(page.page, detectedDevice);
         const result = await device.run();
         await login.close();
         return result;
-    } else if (detectedDevice === 'F6600P' || 'F670L') {
+    } else if (detectedDevice === 'F6600P' || detectedDevice === 'F670L') {
+        console.log(detectedDevice);
         const device = new F6600P(page.page, detectedDevice);
         const result = await device.run();
         await login.close();

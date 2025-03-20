@@ -8,9 +8,9 @@
  * @param {string} id - The ID whose MAC address should be cleared.
  * @returns {Promise<Clearmac | Error>} The returned Clearmac data or an Error.
  */
-import IXCApi, {IXCBASE} from '../api/IXCApi.class';
-import {AxiosResponse} from 'axios';
-import {Clearmac, IxcData, Radusuarios} from '../types';
+import IXCApi, { IXCBASE } from '../api/IXCApi.class';
+import { AxiosResponse } from 'axios';
+import { Clearmac, IxcData, Radusuarios } from '../types';
 
 async function clearMacBR364(id: string): Promise<Clearmac | Error> {
     if (!Number(id)) {
@@ -26,7 +26,7 @@ async function clearMacBR364(id: string): Promise<Clearmac | Error> {
     });
 
     if (!response) {
-        return new Error('Erro ao buscar ID', response);
+        return new Error('Erro ao buscar ID' + response);
     }
 
     return response.data;
@@ -52,7 +52,7 @@ async function getLoginBR364(login: string): Promise<Error | Radusuarios> {
     });
 
     if (!response) {
-        return new Error('Erro ao buscar login', response);
+        return new Error('Erro ao buscar login' + response);
     }
 
     if (response.data.registros) {

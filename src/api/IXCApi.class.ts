@@ -1,6 +1,12 @@
-import axios, {AxiosInstance, AxiosResponse} from 'axios';
-import {Buffer} from 'node:buffer';
-import {IXC_CONFIG} from "../config";
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import { Buffer } from 'node:buffer';
+import { IXC_CONFIG } from "../config";
+
+interface IXCConfig {
+    CDY: { TOKEN: string; BASEURL: string; };
+    BD: { TOKEN: string; BASEURL: string; };
+    BR364: { TOKEN: string; BASEURL: string; };
+}
 
 /**
  * Provides an enum containing base identifiers for IXC configurations.
@@ -41,10 +47,14 @@ class IXCApi {
      * @returns {AxiosInstance} A configured Axios client.
      */
     private createClient(base: IXCBASE): AxiosInstance {
+        if (!IXC_CONFIG || !(IXC_CONFIG as any)[base]) {
+            throw new Error(`Configuration not found for base: ${base}. Please check your environment variables.`);
+        }
+
         return axios.create({
-            baseURL: IXC_CONFIG[base].BASEURL,
+            baseURL: (IXC_CONFIG as any)[base].BASEURL,
             headers: {
-                'Authorization': `Basic ${Buffer.from(IXC_CONFIG[base].TOKEN).toString('base64')}`,
+                'Authorization': `Basic ${Buffer.from((IXC_CONFIG as any)[base].TOKEN).toString('base64')}`,
                 'Content-Type': 'application/json',
             }
         });

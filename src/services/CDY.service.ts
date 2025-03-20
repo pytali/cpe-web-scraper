@@ -7,9 +7,9 @@
  * @param {string} id - ID of the user whose MAC must be cleared.
  * @returns {Promise<Clearmac | Error>} The resulting clear MAC data or an Error.
  */
-import IXCApi, {IXCBASE} from "../api/IXCApi.class";
-import {AxiosResponse} from "axios";
-import {Clearmac, IxcData, Radusuarios} from "../types";
+import IXCApi, { IXCBASE } from "../api/IXCApi.class";
+import { AxiosResponse } from "axios";
+import { Clearmac, IxcData, Radusuarios } from "../types";
 
 async function clearMacCDY(id: string): Promise<Clearmac | Error> {
 
@@ -26,7 +26,7 @@ async function clearMacCDY(id: string): Promise<Clearmac | Error> {
     });
 
     if (!response) {
-        return new Error('Erro ao buscar ID', response);
+        return new Error('Erro ao buscar ID' + response);
     }
 
     return response.data;
@@ -42,7 +42,7 @@ async function clearMacCDY(id: string): Promise<Clearmac | Error> {
  * @param {string} login - The user login identifier.
  * @returns {Promise<Error | Radusuarios>} The first matching record or an Error.
  */
-async function getLoginCDY(login: string): Promise< Error | Radusuarios> {
+async function getLoginCDY(login: string): Promise<Error | Radusuarios> {
 
     if (!login) {
         return new Error('Login não informado');
@@ -54,13 +54,13 @@ async function getLoginCDY(login: string): Promise< Error | Radusuarios> {
     });
 
     if (!response) {
-        return new Error('Erro ao buscar login', response);
+        return new Error('Erro ao buscar login' + response);
     }
 
-    if(response.data.registros) {
+    if (response.data.registros) {
         return response.data.registros[0];
     }
     return new Error('Login não encontrado');
 }
 
-export {clearMacCDY, getLoginCDY};
+export { clearMacCDY, getLoginCDY };

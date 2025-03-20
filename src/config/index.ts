@@ -11,10 +11,10 @@ export const IXC_CONFIG = {
         TOKEN: process.env.IXC_BD_TOKEN || "<TOKEN>",
         BASEURL: process.env.IXC_BD_URL || "https://ixc.example.com/webservice/v1",
 
-        BR364: {
-            TOKEN: process.env.IXC_BR364_TOKEN || "<TOKEN>",
-            BASEURL: process.env.IXC_BR364_URL || "https://ixc.example.com/webservice/v1",
-        }
+    },
+    BR364: {
+        TOKEN: process.env.IXC_BR364_TOKEN || "<TOKEN>",
+        BASEURL: process.env.IXC_BR364_URL || "https://ixc.example.com/webservice/v1",
     }
 }
 
@@ -24,11 +24,11 @@ export const TR069_CONFIG = {
     password: process.env.TR069_PASSWORD || "<PASSWORD>",
     connectionRequestUsername: process.env.TR069_CONN_USERNAME || "<CONNECTION_REQUEST_USERNAME>",
     connectionRequestPassword: process.env.TR069_CONN_PASSWORD || "<CONNECTION_REQUEST_PASSWORD>",
-    periodicInformInterval: parseInt(process.env.TR069_INFORM_INTERVAL || "1200"),
+    periodicInformInterval: process.env.TR069_INFORM_INTERVAL || "1200",
 }
 
 export const DEVICE_CONFIG = {
-    port: parseInt(process.env.DEVICE_PORT || "80"),
+    port: process.env.DEVICE_PORT || "80",
     loginUser: process.env.DEVICE_USERS?.split(",") || ["<LOGIN_USER_1>", "<LOGIN_USER_2>"],
     loginPassword: process.env.DEVICE_PASSWORDS?.split(",") || ["<LOGIN_PASSWORD_1>", "<LOGIN_PASSWORD_2>", "<LOGIN_PASSWORD_3>"]
 }

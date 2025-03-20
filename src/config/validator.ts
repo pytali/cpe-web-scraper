@@ -14,10 +14,8 @@ const IXCProviderSchema = z.object({
 
 const IXCConfigSchema = z.object({
     CDY: IXCProviderSchema,
-    BD: z.object({
-        ...IXCProviderSchema.shape,
-        BR364: IXCProviderSchema
-    })
+    BD: IXCProviderSchema,
+    BR364: IXCProviderSchema
 });
 
 // Schema para configuração TR-069
@@ -27,14 +25,16 @@ const TR069ConfigSchema = z.object({
     password: z.string().min(8),
     connectionRequestUsername: z.string().min(1),
     connectionRequestPassword: z.string().min(8),
-    periodicInformInterval: z.string().regex(/^\d+$/).transform(Number).pipe(
-        z.number().min(300).max(86400)
-    )
+    periodicInformInterval: z.string().regex(/^\d+$/)
+
 });
 
 // Schema para configuração de dispositivos
 const DeviceConfigSchema = z.object({
-    port: z.number().int().min(1).max(65535),
+    port: z.string()
+        .regex(/^\d+$/, 'Porta deve ser um número')
+        .transform(val => parseInt(val, 10))
+        .refine(val => val >= 1 && val <= 65535, 'Porta deve estar entre 1 e 65535'),
     loginUser: z.array(z.string()).min(1),
     loginPassword: z.array(z.string()).min(1)
 });
@@ -90,9 +90,9 @@ export function validateConfig() {
     }
 
     return {
-        IXC_CONFIG: IXC_CONFIG as ValidatedIXCConfig,
-        TR069_CONFIG: TR069_CONFIG as ValidatedTR069Config,
-        DEVICE_CONFIG: DEVICE_CONFIG as ValidatedDeviceConfig,
-        WORKER_CONFIG: WORKER_CONFIG as ValidatedWorkerConfig
+        IXC_CONFIG: IXCConfigSchema.parse(IXC_CONFIG),
+        TR069_CONFIG: TR069ConfigSchema.parse(TR069_CONFIG),
+        DEVICE_CONFIG: DeviceConfigSchema.parse(DEVICE_CONFIG),
+        WORKER_CONFIG: WorkerConfigSchema.parse(WORKER_CONFIG)
     };
 } 

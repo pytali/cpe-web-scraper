@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import { Buffer } from 'node:buffer';
 import { IXC_CONFIG } from "../config";
 

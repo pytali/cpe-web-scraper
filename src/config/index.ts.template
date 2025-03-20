@@ -1,0 +1,26 @@
+/**
+ * Template de configuração para o CPE Web Scraper
+ * 
+ * IMPORTANTE:
+ * 1. Copie este arquivo para index.ts
+ * 2. Substitua os valores de exemplo pelos valores reais
+ * 3. NUNCA comite o arquivo index.ts
+ */
+
+export const IXC_CONFIG = {
+    // Configuração para Candeias
+    CDY: {
+        TOKEN: "your_cdy_token_here", // Token de autenticação da API
+        BASEURL: "https://ixc.example.com/webservice/v1", // URL base da API
+    },
+    // Configuração para Brasil Digital
+    BD: {
+        TOKEN: "your_bd_token_here", // Token de autenticação da API
+        BASEURL: "https://ixc.example.net/webservice/v1", // URL base da API
+    },
+    // Configuração para BR364
+    BR364: {
+        TOKEN: "your_br364_token_here", // Token de autenticação da API
+        BASEURL: "https://ixc.example.com.br/webservice/v1", // URL base da API
+    }
+}

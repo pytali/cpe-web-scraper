@@ -34,13 +34,24 @@ npm install
 yarn install
 ```
 
-3. Configure as variáveis de ambiente necessárias para:
+3. Configure o arquivo de configuração:
+```bash
+cp src/config/index.ts.template src/config/index.ts
+```
+Edite o arquivo `src/config/index.ts` com suas credenciais:
+- Tokens de API do IXC para cada provedor
+- URLs base dos serviços
+- Outras configurações necessárias
+
+O arquivo `index.ts.template` serve como exemplo e documentação das configurações necessárias.
+
+4. Configure as demais variáveis de ambiente necessárias para:
 - Credenciais de acesso
 - URLs dos serviços
 - Configurações do IXC
 - Outras configurações específicas do ambiente
 
-4. Compile e execute o projeto
+5. Compile e execute o projeto
 ```bash
 npm start
 # ou
@@ -126,6 +137,8 @@ npm test
 
 ## ⚠️ Notas Importantes
 - Certifique-se de ter todas as credenciais necessárias configuradas antes de executar
+- NUNCA comite o arquivo `src/config/index.ts` - ele contém informações sensíveis
+- Use `src/config/index.ts.template` como referência para configuração
 - O projeto requer acesso à internet para funcionar corretamente
 - Algumas funcionalidades podem requerer permissões específicas no IXC
 - Configure adequadamente o número de workers de acordo com os recursos disponíveis

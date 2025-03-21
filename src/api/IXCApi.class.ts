@@ -1,6 +1,6 @@
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import { Buffer } from 'node:buffer';
-import { IXC_CONFIG } from "../config";
+import { IXC_CONFIG } from "../config/index.ts";
 
 interface IXCConfig {
     CDY: { TOKEN: string; BASEURL: string; };
@@ -47,14 +47,14 @@ class IXCApi {
      * @returns {AxiosInstance} A configured Axios client.
      */
     private createClient(base: IXCBASE): AxiosInstance {
-        if (!IXC_CONFIG || !(IXC_CONFIG as any)[base]) {
+        if (!IXC_CONFIG || !(IXC_CONFIG as IXCConfig)[base]) {
             throw new Error(`Configuration not found for base: ${base}. Please check your environment variables.`);
         }
 
         return axios.create({
-            baseURL: (IXC_CONFIG as any)[base].BASEURL,
+            baseURL: (IXC_CONFIG as IXCConfig)[base].BASEURL,
             headers: {
-                'Authorization': `Basic ${Buffer.from((IXC_CONFIG as any)[base].TOKEN).toString('base64')}`,
+                'Authorization': `Basic ${Buffer.from((IXC_CONFIG as IXCConfig)[base].TOKEN).toString('base64')}`,
                 'Content-Type': 'application/json',
             }
         });

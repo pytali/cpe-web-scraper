@@ -1,12 +1,22 @@
 /**
  * Imports required modules and device-specific classes for TR-069 configuration.
  */
-import { Login } from './auth/login';
-import { DeviceChecker } from './deviceChecker';
-import { F680 } from './devices/f680';
-import { F6600P } from './devices/f6600p';
+import { Login } from './auth/login.ts';
+import { DeviceChecker } from './deviceChecker.ts';
+import { F680 } from './devices/f680.ts';
+import { F6600P } from './devices/f6600p.ts';
 import * as fs from "node:fs";
-import { DEVICE_CONFIG } from './config';
+import { DEVICE_CONFIG } from './config/index.ts';
+
+interface ConfigureDevicesResult {
+    type: string;
+    user: string;
+    vlan: string;
+    pass: string;
+    priority: string;
+    service_list: string;
+    name: string;
+}
 
 /**
  * Configures TR-069 devices based on the given IP address.
@@ -19,9 +29,9 @@ import { DEVICE_CONFIG } from './config';
  * @function configureDevices
  * @param {string} deviceIP - The IP address of the device to configure.
  * @param {string} loginUser - The username for device login.
- * @returns {Promise<any>} Resolves with the configuration result or an Error object.
+ * @returns {Promise<ConfigureDevicesResult | Error | undefined>} Resolves with the configuration result or an Error object.
  */
-export async function configureDevices(deviceIP: string, loginUser: string): Promise<any> {
+export async function configureDevices(deviceIP: string, loginUser: string): Promise<ConfigureDevicesResult | Error | undefined> {
 
     /**
      * Validates the device IP address format.
@@ -115,4 +125,5 @@ export async function configureDevices(deviceIP: string, loginUser: string): Pro
 
     // Close the browser if no configuration routine matches
     await login.close();
+    return new Error('❌ No compatible device detected.');
 }

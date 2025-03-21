@@ -1,12 +1,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { readIPColumnFromCSV } from "./util/CsvParser.js";
+import { readIPColumnFromCSV } from "./util/CsvParser.ts";
 import { stringify } from 'csv-stringify';
 import csvParser from 'csv-parser';
-import WorkerPool from "./workers/WorkerPool.js";
-import { DEVICE_CONFIG, WORKER_CONFIG } from "./config/index.js";
-import { configureDevices } from "./configureTR069.js";
-import { DeviceChecker } from "./deviceChecker.js";
+import WorkerPool from "./workers/WorkerPool.ts";
+import { DEVICE_CONFIG, WORKER_CONFIG } from "./config/index.ts";
 
 if (WORKER_CONFIG.batchSize < 1 || WORKER_CONFIG.poolSize < 1) {
     throw new Error('❌ Batch size and pool size must be greater than 0');
@@ -23,6 +21,10 @@ const POOL_SIZE = WORKER_CONFIG.poolSize; // Number of workers in the worker poo
 const devicesFilePath = 'devices.json';
 const loginErrorFilePath = 'loginerror.json';
 
+interface CsvRow {
+    ip: string;
+    [key: string]: string;
+}
 
 /**
  * Processes the CSV file to remove rows with processed IPs.
@@ -33,7 +35,7 @@ const loginErrorFilePath = 'loginerror.json';
  */
 const processCSV = (csvFilePath: string, processedIPs: Set<string>): Promise<void> => {
     return new Promise((resolve, reject) => {
-        const remainingRows: any[] = [];
+        const remainingRows: CsvRow[] = [];
         fs.createReadStream(csvFilePath)
             .pipe(csvParser())
             .on('data', (row) => {

@@ -4,6 +4,7 @@
  */
 import puppeteer from 'puppeteer';
 import { Browser, BrowserContext, Page } from 'puppeteer';
+import { logger } from '../util/logger';
 
 export class Login {
     /**
@@ -64,7 +65,7 @@ export class Login {
      */
     async launch(): Promise<{ page: Page, login: boolean } | Error> {
         this.browser = await puppeteer.launch({
-            headless: false,
+            headless: true,
             defaultViewport: null,
             args: [
                 '--no-sandbox',
@@ -109,10 +110,10 @@ export class Login {
                 if (await this.page.$('#login_error_span') || await this.page.$('#errnote')) {
                     await this.page.$eval('#Frm_Username', el => (el as HTMLInputElement).value = '');
                     await this.page.$eval('#Frm_Password', el => (el as HTMLInputElement).value = '');
-                    console.log('🚨 Invalid credentials for ZTE!');
+                    logger.error('🚨 Invalid credentials for ZTE!');
                 } else {
                     login = true;
-                    console.log('✅ Logged into ZTE!');
+                    logger.info('✅ Logged into ZTE!');
                 }
             }
         }

@@ -1,10 +1,12 @@
 import { Worker } from 'worker_threads';
+import { logger } from '../util/logger.ts';
 
 class WorkerPool {
     private workerPath: string;
     private poolSize: number;
     private taskQueue: string[] = [];
     private activeWorkers: Set<Worker> = new Set();
+    private isShuttingDown: boolean = false;
 
     /**
      * Creates an instance of WorkerPool.
@@ -27,11 +29,11 @@ class WorkerPool {
             const worker = new Worker(this.workerPath, { workerData: { ip, loginUser } });
 
             worker.on('message', (msg) => {
-                if(msg.result && msg.result.message) {
-                    console.log(`[Worker Error] ${msg.ip}:`, msg.result.message);
+                if (msg.result && msg.result.message) {
+                    logger.error(`[Worker Error] ${msg.ip}: ${msg.result.message}`);
                     resolve(msg)
                 } else {
-                    console.log(`[Worker Done] ${msg.ip}:`, msg.result);
+                    logger.info(`[Worker Done] ${msg.ip}: ${JSON.stringify(msg.result)}`);
                     resolve(msg);
                 }
             });
@@ -47,17 +49,53 @@ class WorkerPool {
     }
 
     /**
+     * Aguarda a conclusão de todas as tarefas em andamento
+     * @returns {Promise<void>} - Uma promise que resolve quando todas as tarefas são concluídas
+     */
+    async drain(): Promise<void> {
+        this.isShuttingDown = true;
+        logger.info(`Aguardando conclusão de ${this.activeWorkers.size} workers ativos...`);
+
+        // Aguarda a conclusão de todos os workers ativos
+        while (this.activeWorkers.size > 0) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    }
+
+    /**
+     * Encerra todos os workers e limpa o pool
+     * @returns {Promise<void>} - Uma promise que resolve quando todos os workers são encerrados
+     */
+    async shutdown(): Promise<void> {
+        this.isShuttingDown = true;
+
+        // Termina todos os workers ativos
+        for (const worker of this.activeWorkers) {
+            worker.terminate();
+        }
+
+        this.activeWorkers.clear();
+        this.taskQueue = [];
+
+        logger.info('Worker pool encerrado com sucesso.');
+    }
+
+    /**
      * Runs the task queue, processing IPs with the worker pool.
      * @param {string[]} ips - The list of IP addresses to be processed.
      * @param {string} userLogin - The username for device login.
      * @returns {Promise<{ ip: string; result: any }[]>} - A promise that resolves with the results of the processed IPs.
      */
     async runTaskQueue(ips: string[], userLogin: string): Promise<{ ip: string; result: any }[]> {
+        if (this.isShuttingDown) {
+            throw new Error('Worker pool está em processo de shutdown');
+        }
+
         this.taskQueue.push(...ips);
         const results: { ip: string; result: any }[] = [];
 
-        while (this.taskQueue.length > 0 || this.activeWorkers.size > 0) {
-            while (this.activeWorkers.size < this.poolSize && this.taskQueue.length > 0) {
+        while ((this.taskQueue.length > 0 || this.activeWorkers.size > 0) && !this.isShuttingDown) {
+            while (this.activeWorkers.size < this.poolSize && this.taskQueue.length > 0 && !this.isShuttingDown) {
                 const ip = this.taskQueue.shift()!;
                 this.runWorker(ip, userLogin).then((result) => results.push(result));
             }

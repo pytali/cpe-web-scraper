@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { IXC_CONFIG, TR069_CONFIG, DEVICE_CONFIG, WORKER_CONFIG } from './index';
+import { IXC_CONFIG, TR069_CONFIG, DEVICE_CONFIG, WORKER_CONFIG } from './index.ts';
 
 // Regex para validar o formato do token IXC (XX:hash)
 const tokenRegex = /^\d+:[a-f0-9]{64}$/;

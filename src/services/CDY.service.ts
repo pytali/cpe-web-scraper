@@ -7,9 +7,9 @@
  * @param {string} id - ID of the user whose MAC must be cleared.
  * @returns {Promise<Clearmac | Error>} The resulting clear MAC data or an Error.
  */
-import IXCApi, { IXCBASE } from "../api/IXCApi.class";
-import { AxiosResponse } from "axios";
-import { Clearmac, IxcData, Radusuarios } from "../types";
+import IXCApi, { IXCBASE } from "../api/IXCApi.class.ts";
+import { type AxiosResponse } from "axios";
+import { type Clearmac, type IxcData, type Radusuarios } from "../types/index.ts";
 
 async function clearMacCDY(id: string): Promise<Clearmac | Error> {
 

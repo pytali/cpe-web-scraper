@@ -5,7 +5,8 @@
 import { Page } from 'puppeteer';
 import { checkLoginInAllServices } from "../services/Search.service";
 import { ClearmacInAllServices } from "../services/ClearMac.service";
-import { TR069_CONFIG } from '../config';
+import { TR069_CONFIG } from '../config/index.ts';
+import { logger } from '../util/logger.ts';
 
 export class F6600P {
     /**
@@ -57,11 +58,13 @@ export class F6600P {
                     return true;
                 }
                 if (wan.toLowerCase().includes('tr069')) {
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     count++;
                     return true;
                 }
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) {
-                console.error(`Error checking WAN for index ${it}`);
+                logger.error(`Error checking WAN for index ${it}`);
             }
         }
         return false;
@@ -74,13 +77,13 @@ export class F6600P {
      * @returns {Promise<{type: string, user: string, vlan: string, pass: string, priority: string, service_list: string, name: string} | Error>} The WAN config or an Error.
      */
     async configureWAN() {
-        console.log(` 🌎️ Configuring WAN for ${this.device}...`);
+        logger.info(` 🌎️ Configuring WAN for ${this.device}...`);
 
         const LinkMode = {
             'PPP': 'PPPoE', 'IP': 'DHCP'
         };
 
-        let UserAuth: {
+        const UserAuth: {
             type: string,
             user: string,
             vlan: string,
@@ -106,7 +109,7 @@ export class F6600P {
         const wanName = await this.checkWAN(UserAuth.name);
 
         if (wanName) {
-            console.log('WAN already configured!');
+            logger.info('WAN already configured!');
             return UserAuth;
         }
 
@@ -115,7 +118,7 @@ export class F6600P {
         await this.page.click('#instName_Internet\\:0');
 
         if ((await this.page.$eval('#WANCName\\:0', (el => (el as HTMLInputElement).value))).includes('omci')) {
-            console.log('WAN OK');
+            logger.info('WAN OK');
             return UserAuth;
         }
 
@@ -123,7 +126,7 @@ export class F6600P {
         const linkType = await this.page.$eval('#linkMode\\:0', (el => (el as HTMLInputElement).value));
 
         if (linkType !== 'PPP') {
-            console.log('IPOE CONFIGURED');
+            logger.info('IPOE CONFIGURED');
             return UserAuth;
         }
 
@@ -151,13 +154,13 @@ export class F6600P {
         const clearMac = await ClearmacInAllServices(loginResult.id);
 
         if (clearMac instanceof Error) {
-            console.log(clearMac.message);
+            logger.error(clearMac.message);
         }
 
         await this.page.click('#Btn_apply_internet\\:1');
         await new Promise(resolve => setTimeout(resolve, 3000));
 
-        console.log(`✅ WAN configured successfully on ${this.device}!`);
+        logger.info(`✅ WAN configured successfully on ${this.device}!`);
         return UserAuth;
     }
 
@@ -167,8 +170,10 @@ export class F6600P {
      * @returns {Promise<void>} No return value.
      */
     async checkDNS() {
-        console.log(`🔍 Checking DNS for ${this.device}...`);
+        logger.info(`🔍 Checking DNS for ${this.device}...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
+        await this.page.waitForSelector('#localnet');
         await this.page.click('#localnet');
         await this.page.waitForSelector('#lanConfig');
         await this.page.click('#lanConfig');
@@ -176,7 +181,7 @@ export class F6600P {
         await this.page.click('#DHCPBasicCfgBar');
         await this.page.waitForSelector('#sub_IPAddr0\\:DHCPBasicCfg', { visible: true });
 
-        let checkDNS: { dns1: string[], dns2: string[] } = {
+        const checkDNS: { dns1: string[], dns2: string[] } = {
             dns1: [],
             dns2: []
         };
@@ -199,8 +204,8 @@ export class F6600P {
                     dns2: ['177', '221', '56', '10']
                 };
 
-                console.log('🚨 DNS is not configured correctly!');
-                console.log(`🔧 Configuring DNS for ${this.device}...`);
+                logger.error('🚨 DNS is not configured correctly!');
+                logger.info(`🔧 Configuring DNS for ${this.device}...`);
 
                 await this.page.click('#DnsServerSource0');
 
@@ -229,11 +234,11 @@ export class F6600P {
                 }
 
                 await this.page.click('#Btn_apply_LocalDnsServer');
-                console.log(`✅ DNS configured successfully on ${this.device}!`);
+                logger.info(`✅ DNS configured successfully on ${this.device}!`);
             }
         }
 
-        console.log(`✅ DNS configured correctly on ${this.device}!`);
+        logger.info(`✅ DNS configured correctly on ${this.device}!`);
         await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
@@ -244,7 +249,7 @@ export class F6600P {
      * @returns {Promise<void>} No return value.
      */
     async configureTR069(wan: string | Error) {
-        console.log(`⚙️ Configuring TR-069 for ${this.device}...`);
+        logger.info(`⚙️ Configuring TR-069 for ${this.device}...`);
 
         await this.page.click('#mgrAndDiag');
         await this.page.waitForSelector('#remoteMgr');
@@ -286,7 +291,7 @@ export class F6600P {
         await this.page.click('#Btn_apply_TR069BasicConf');
         await new Promise(resolve => setTimeout(resolve, 1200));
 
-        console.log(`✅ TR-069 configured successfully on ${this.device}!`);
+        logger.info(`✅ TR-069 configured successfully on ${this.device}!`);
     }
 
     /**
@@ -312,12 +317,12 @@ export class F6600P {
         }
 
         if (elementExists) {
-            console.log('Deleting WANs...');
+            logger.info('Deleting WANs...');
             await this.page.click('#instDelete_Internet\\:0');
         }
 
         await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log('Finished! Logging out...');
+        logger.info('Finished! Logging out...');
     }
 
     /**
@@ -338,7 +343,7 @@ export class F6600P {
             await this.#logout();
             return wan;
         } catch (error) {
-            console.error('❌ An error occurred:', error);
+            logger.error('❌ An error occurred:' + error);
         }
     }
 }

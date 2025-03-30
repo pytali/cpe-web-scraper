@@ -8,9 +8,9 @@
  * @param {string} id - The ID whose MAC address should be cleared.
  * @returns {Promise<Clearmac | Error>} The returned Clearmac data or an Error.
  */
-import IXCApi, { IXCBASE } from '../api/IXCApi.class';
-import { AxiosResponse } from 'axios';
-import { Clearmac, IxcData, Radusuarios } from '../types';
+import IXCApi, { IXCBASE } from '../api/IXCApi.class.ts';
+import { type AxiosResponse } from 'axios';
+import { type Clearmac, type IxcData, type Radusuarios } from '../types/index.ts';
 
 async function clearMacBR364(id: string): Promise<Clearmac | Error> {
     if (!Number(id)) {

@@ -39,7 +39,7 @@ export async function readIPColumnFromCSV(filePath: string): Promise<string[]> {
             .on('end', () => {
                 resolve(ips);
             })
-            .on('error', (error: any) => {
+            .on('error', (error: unknown) => {
                 reject(error);
             });
     });

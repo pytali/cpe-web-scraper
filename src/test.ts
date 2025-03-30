@@ -1,10 +1,8 @@
-import * as fs from "node:fs";
+import * as fs from 'node:fs';
+import { ClearmacInAllServices } from "./services/ClearMac.service.ts";
+import { checkLoginInAllServices } from "./services/Search.service.ts";
+import WorkerPool from "./workers/WorkerPool.ts";
 import * as path from "node:path";
-import { ClearmacInAllServices } from "./services/ClearMac.service.js";
-import { checkLoginInAllServices } from "./services/Search.service.js";
-import WorkerPool from "./workers/WorkerPool.js";
-import { DEVICE_CONFIG, WORKER_CONFIG } from "./config/index.js";
-import { configureDevices } from "./configureTR069.js";
 
 const LOGINs = JSON.parse(fs.readFileSync('../devices.json', 'utf-8'));
 

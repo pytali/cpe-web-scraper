@@ -1,5 +1,5 @@
-import { environment } from './env';
-import { validateConfig } from './validator';
+import { environment } from './env.ts';
+import { validateConfig } from './validator.ts';
 
 // Carrega as configurações baseadas no ambiente atual
 export const IXC_CONFIG = {

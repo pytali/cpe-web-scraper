@@ -43,3 +43,5 @@ cpe-web-access.iml
 # Devices
 devices.json
 loginerror.json
+
+logs

@@ -8,7 +8,7 @@
  * @module worker
  */
 import { parentPort, workerData } from 'worker_threads';
-import {configureDevices} from "../configureTR069";
+import { configureDevices } from "../configureTR069.ts";
 
 /**
  * Interface representing the data passed to the worker

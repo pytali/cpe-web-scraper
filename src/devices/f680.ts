@@ -1,7 +1,8 @@
 import { Frame, Page } from 'puppeteer';
-import { checkLoginInAllServices } from "../services/Search.service";
-import { ClearmacInAllServices } from "../services/ClearMac.service";
-import { TR069_CONFIG } from '../config';
+import { checkLoginInAllServices } from "../services/Search.service.ts";
+import { ClearmacInAllServices } from "../services/ClearMac.service.ts";
+import { TR069_CONFIG } from '../config/index.ts';
+import { logger } from '../util/logger';
 
 export class F680 {
     private page: Page;
@@ -35,7 +36,7 @@ export class F680 {
         });
 
         if (!wanName) {
-            console.log('❌ WAN not configured.');
+            logger.info('❌ WAN not configured.');
             return false;
         } else {
             return true;
@@ -50,7 +51,7 @@ export class F680 {
         };
 
 
-        let UserAuth: {
+        const UserAuth: {
             type: string,
             user: string,
             vlan: string,
@@ -71,7 +72,7 @@ export class F680 {
 
         const iframe = this.page.frames().find(frame => frame.name() === 'mainFrame');
         if (!iframe) {
-            console.error('❌ Iframe with name "mainFrame" not found.');
+            logger.error('❌ Iframe with name "mainFrame" not found.');
             return UserAuth;
         }
 
@@ -90,7 +91,7 @@ export class F680 {
 
 
         if (wanChecker) {
-            console.log('WAN already configured.');
+            logger.info('WAN already configured.');
             return UserAuth;
         }
 
@@ -99,7 +100,7 @@ export class F680 {
         const linkType = await iframe.$eval('#Frm_linkMode', (el => (el as HTMLInputElement).value));
 
         if (linkType !== 'PPP') {
-            console.log('IPOE CONFIGURED');
+            logger.info('IPOE CONFIGURED');
             return UserAuth;
         }
 
@@ -135,7 +136,7 @@ export class F680 {
         const clearMac = await ClearmacInAllServices(loginResult.id);
 
         if (clearMac instanceof Error) {
-            console.log(clearMac.message);
+            logger.error(clearMac.message);
         }
         await new Promise(resolve => setTimeout(resolve, 1000));
         await iframe.click('#Btn_Add');
@@ -145,14 +146,14 @@ export class F680 {
 
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        console.log(`✅ WAN configured successfully on ${this.device}!`);
+        logger.info(`✅ WAN configured successfully on ${this.device}!`);
         return UserAuth;
 
 
     }
 
     private async configureTR069(wan: string) {
-        console.log('⚙️ Configuring TR-069 for F680...');
+        logger.info('⚙️ Configuring TR-069 for F680...');
 
         // Navigate to TR-069 configuration page
         await this.navigateToTR069Page();
@@ -160,27 +161,27 @@ export class F680 {
         // Interact with the iframe and configure TR-069
         const iframe = await this.getIframe('#mainFrame');
         if (!iframe) {
-            console.error('Iframe with ID "mainFrame" not found or not accessible.');
+            logger.error('Iframe with ID "mainFrame" not found or not accessible.');
             return;
         }
 
-        console.log("📄 Iframe found. Interacting with form fields...");
+        logger.info("📄 Iframe found. Interacting with form fields...");
 
         await this.fillTR069Form(iframe, wan);
 
-        console.log('✅ TR-069 configured successfully on F680!');
+        logger.info('✅ TR-069 configured successfully on F680!');
     }
 
     private async navigateToTR069Page() {
         await this.page.evaluate(() => {
             const iframe = document.getElementById("mainFrame") as HTMLIFrameElement | null;
             if (!iframe) {
-                console.error('❌ Iframe with ID "mainFrame" not found.');
+                logger.error('❌ Iframe with ID "mainFrame" not found.');
                 return;
             }
             const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
             if (!iframeDoc) {
-                console.error('❌ Iframe document not accessible.');
+                logger.error('❌ Iframe document not accessible.');
                 return;
             }
             (iframeDoc.querySelector('#Fnt_mmManager') as HTMLElement)?.click();
@@ -258,7 +259,7 @@ export class F680 {
             if (submitButton) {
                 submitButton.click();
             } else {
-                console.error("❌ Submit button not found!");
+                logger.error("❌ Submit button not found!");
             }
         })
 
@@ -267,7 +268,7 @@ export class F680 {
         // await iframe.waitForSelector('#Btn_Submit', { visible: true });
         // await iframe.click('#Btn_Submit');
 
-        console.log('📨 Form submitted successfully!');
+        logger.info('📨 Form submitted successfully!');
 
         await new Promise(resolve => setTimeout(resolve, 2000));
     }
@@ -284,7 +285,7 @@ export class F680 {
 
         const iframe = this.page.frames().find(frame => frame.name() === 'mainFrame');
         if (!iframe) {
-            console.error('❌ Iframe with name "mainFrame" not found.');
+            logger.error('❌ Iframe with name "mainFrame" not found.');
             return;
         }
 
@@ -308,7 +309,7 @@ export class F680 {
             }
 
             // Filter out 'Internet_TR069' and 'omci' options
-            return !wan.text.includes('Internet_TR069') && !wan.text.includes('omci') && wan.value !== '-1';
+            return !wan.text.includes('Internet_TR069') && !wan.text.includes('omci') && !wan.text.toLowerCase().includes('ipoe') && wan.value !== '-1';
 
         });
 
@@ -316,7 +317,7 @@ export class F680 {
         const isWanConfigured = wan.some(wan => wan.text === 'Internet_TR069');
 
         if (!isWanConfigured) {
-            console.log('❌ WAN "Internet_TR069" not configured.');
+            logger.info('❌ WAN "Internet_TR069" not configured.');
             return;
         }
 
@@ -330,7 +331,7 @@ export class F680 {
             await iframe.select('#Frm_WANCName0', wan.value);
             await new Promise(resolve => setTimeout(resolve, 1000));
             await iframe.click('#Btn_Delete')
-            console.log(`Deleting WAN: ${wan.text} (${wan.value})`);
+            logger.info(`Deleting WAN: ${wan.text} (${wan.value})`);
 
             await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -344,7 +345,7 @@ export class F680 {
             const wan = await this.configureWan();
 
             if (wan instanceof Error) {
-                console.error('❌ Error configuring WAN:', wan);
+                logger.error('❌ Error configuring WAN:' + wan);
                 return wan;
             }
 
@@ -358,7 +359,7 @@ export class F680 {
 
             return wan;
         } catch (error) {
-            console.error('❌ An error occurred:', error);
+            logger.error('❌ An error occurred:' + error);
         }
     }
 }

@@ -2,6 +2,7 @@
  * Imports the Puppeteer Page object.
  */
 import { Page } from 'puppeteer';
+import { logger } from './util/logger.ts';
 
 /**
  * Represents a device checker with methods to detect device models and retrieve all elements.
@@ -28,47 +29,47 @@ export class DeviceChecker {
      * @returns {Promise<string|Error>} The detected model string or an Error if detection fails.
      */
     async detectDevice(): Promise<string | Error> {
-        if (this.page instanceof Page) {
-            const modelF680 = await this.page.evaluate(() => {
-                const iframe = document.getElementById("mainFrame") as HTMLIFrameElement | null;
-                if (!iframe) {
-                    console.error('Iframe with ID "mainFrame" not found.');
-                    return '';
-                }
-                const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-                if (!iframeDoc) {
-                    console.error('Iframe document not accessible.');
-                    return '';
-                }
-                const element = iframeDoc.querySelector('#Frm_ModelName');
-                return element ? element.textContent?.trim() || '' : '';
-            });
+        if (!(this.page instanceof Page)) {
+            return new Error('❌ Page not found.');
+        }
 
-            if (modelF680 && modelF680.includes('F680')) {
-                console.log(`✅ Detected device: ${modelF680}`);
-                return 'F680';
-            }
+        const mainFrame = this.page.frames().find(frame => frame.name() === 'mainFrame');
 
-            if (modelF680 && modelF680.includes('F670')) {
-                console.log(`✅ Detected device: ${modelF680}`);
-                return 'F670L_OLD';
-            }
 
+        if (!mainFrame) {
             const modelF6600P = await this.page.evaluate(() => {
                 const element = document.querySelector('#pdtVer');
                 return element ? element.textContent?.trim() || '' : '';
             });
 
             if (modelF6600P && modelF6600P.includes('F6600P')) {
-                console.log(`✅ Detected device: ${modelF6600P}`);
+                logger.info(`✅ Detected device: ${modelF6600P}`);
                 return 'F6600P';
             }
 
             if (modelF6600P && modelF6600P.includes('F670L')) {
-                console.log(`✅ Detected device: ${modelF6600P}`);
+                logger.info(`✅ Detected device: ${modelF6600P}`);
                 return 'F670L';
             }
+
+            return new Error('❌ Device detection failed.');
+
         }
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const element = await mainFrame.$eval('#Frm_ModelName', el => el.textContent?.trim() || '');
+
+        if (element && element.includes('F680')) {
+            logger.info(`✅ Detected device: ${element}`);
+            return 'F680';
+        }
+
+        if (element && element.includes('F670')) {
+            logger.info(`✅ Detected device: ${element}`);
+            return 'F670L_OLD';
+        }
+
         return new Error('❌ Device detection failed.');
     }
 

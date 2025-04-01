@@ -10,7 +10,9 @@
     "test:watch": "jest --watch",
     "dev": "NODE_ENV=development ts-node src/main.ts",
     "build": "tsc",
-    "start:prod": "NODE_ENV=production node dist/main.js"
+    "start:prod": "NODE_ENV=production node dist/main.js",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",

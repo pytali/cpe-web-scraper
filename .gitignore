@@ -52,7 +52,6 @@ out/
 tmp/
 
 # Arquivos específicos do projeto
-package-lock.json
 cpe-web-access.iml
 *.iml
 devices.json

@@ -4,7 +4,7 @@
   "description": "A simple web scraper using Puppeteer and IXC API Integration",
   "scripts": {
     "start": "tsc && node dist/main.js",
-    "setup": "tsc scripts/setup.ts && node scripts/setup.js",
+    "setup": "tsc -p tsconfig.scripts.json && node scripts/dist/setup.js",
     "postinstall": "npm run setup",
     "test": "jest",
     "test:watch": "jest --watch",

@@ -4,15 +4,15 @@ import { describe, expect, test, beforeEach } from '@jest/globals';
 const defaultConfig = {
     IXC_CONFIG: {
         CDY: {
-            TOKEN: '04:8f9e2a3b7c6d1f4e5d8c9b2a3f6e8d7c4b5a9f8e2d1c3b7a4f6e8d9c5b2a3f',
+            TOKEN: '14:7bef3c8a91d2f5e6b4a0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8',
             BASEURL: 'https://ixc.example.com/webservice/v1'
         },
         BD: {
-            TOKEN: '12:3a7b4c8d2e5f9g6h1i4j7k2l5m8n3o6p9q2r5s8t1u4v7w0x3y6z9a2b5c8d',
+            TOKEN: '12:7bef3c8a91d2f5e6b4a0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8',
             BASEURL: 'https://ixc.example.com/webservice/v1'
         },
         BR364: {
-            TOKEN: '17:5x8y2z7a4b1c6d3e9f5g2h8i4j1k7l3m9n5o2p8q4r1s7t3u9v5w2x8y4z',
+            TOKEN: '25:7bef3c8a91d2f5e6b4a0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8',
             BASEURL: 'https://ixc.example.com/webservice/v1'
         }
     },
@@ -32,7 +32,7 @@ const defaultConfig = {
     WORKER_CONFIG: {
         batchSize: 2,
         poolSize: 1,
-        ttl: 3600,
+        ttl: 30,
         gracefulShutdownTimeout: 60
     }
 };
@@ -66,7 +66,7 @@ describe('Config Validator', () => {
             }
         };
 
-        expect(() => validateConfig()).toThrow(/Token deve estar no formato XX:hash/);
+        expect(() => validateConfig()).toThrow(/Token must be in format XX:hash/);
     });
 
     test('deve rejeitar URL com barra no final', () => {
@@ -78,7 +78,7 @@ describe('Config Validator', () => {
             }
         };
 
-        expect(() => validateConfig()).toThrow(/URL não deve terminar com barra/);
+        expect(() => validateConfig()).toThrow(/URL must not end with a slash/);
     });
 
     test('deve rejeitar senha TR069 muito curta', () => {
@@ -87,7 +87,7 @@ describe('Config Validator', () => {
             password: '123'
         };
 
-        expect(() => validateConfig()).toThrow(/Senha deve ter pelo menos 8 caracteres/);
+        expect(() => validateConfig()).toThrow(/String must contain at least 8 character/);
     });
 
     test('deve rejeitar porta de dispositivo inválida', () => {
@@ -96,7 +96,7 @@ describe('Config Validator', () => {
             port: '70000'
         };
 
-        expect(() => validateConfig()).toThrow(/Porta deve estar entre 1 e 65535/);
+        expect(() => validateConfig()).toThrow(/Port must be between 1 and 65535/);
     });
 
     test('deve rejeitar tamanho de lote de worker inválido', () => {
@@ -105,7 +105,7 @@ describe('Config Validator', () => {
             batchSize: 0
         };
 
-        expect(() => validateConfig()).toThrow(/Tamanho do lote deve ser pelo menos 1/);
+        expect(() => validateConfig()).toThrow(/Number must be greater than or equal to 1/);
     });
 
     test('deve rejeitar lista vazia de usuários', () => {
@@ -114,16 +114,16 @@ describe('Config Validator', () => {
             loginUser: []
         };
 
-        expect(() => validateConfig()).toThrow(/Lista de usuários não pode estar vazia/);
+        expect(() => validateConfig()).toThrow(/Array must contain at least 1 element/);
     });
 
     test('deve rejeitar TTL de worker muito baixo', () => {
         mockModule.WORKER_CONFIG = {
             ...mockModule.WORKER_CONFIG,
-            ttl: 200
+            ttl: 2
         };
 
-        expect(() => validateConfig()).toThrow(/TTL deve ser pelo menos 300 segundos/);
+        expect(() => validateConfig()).toThrow(/Number must be greater than or equal to 20/);
     });
 
     test('deve rejeitar TTL de worker muito alto', () => {
@@ -132,7 +132,7 @@ describe('Config Validator', () => {
             ttl: 90000
         };
 
-        expect(() => validateConfig()).toThrow(/TTL não pode ser maior que 86400 segundos/);
+        expect(() => validateConfig()).toThrow(/Number must be less than or equal to 120/);
     });
 
     test('deve rejeitar timeout de graceful shutdown muito baixo', () => {
@@ -141,7 +141,7 @@ describe('Config Validator', () => {
             gracefulShutdownTimeout: 20
         };
 
-        expect(() => validateConfig()).toThrow(/Timeout de graceful shutdown deve ser pelo menos 30 segundos/);
+        expect(() => validateConfig()).toThrow(/Number must be greater than or equal to 30/);
     });
 
     test('deve rejeitar timeout de graceful shutdown muito alto', () => {
@@ -150,6 +150,6 @@ describe('Config Validator', () => {
             gracefulShutdownTimeout: 400
         };
 
-        expect(() => validateConfig()).toThrow(/Timeout de graceful shutdown não pode ser maior que 300 segundos/);
+        expect(() => validateConfig()).toThrow(/Number must be less than or equal to 300/);
     });
 }); 

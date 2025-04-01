@@ -1,6 +1,6 @@
 import { Worker } from 'worker_threads';
-import { logger } from '../util/logger.ts';
-import { WORKER_CONFIG } from '../config/index.ts';
+import { logger } from '../util/logger';
+import { WORKER_CONFIG } from '../config/index';
 
 class WorkerPool {
     private workerPath: string;

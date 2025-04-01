@@ -45,7 +45,7 @@ const mockModule = {
 jest.mock('../index', () => mockModule);
 
 // Importa as dependências após o mock
-import { validateConfig } from '../validator.ts';
+import { validateConfig } from '../validator';
 
 describe('Config Validator', () => {
     beforeEach(() => {
@@ -87,7 +87,7 @@ describe('Config Validator', () => {
             password: '123'
         };
 
-        expect(() => validateConfig()).toThrow(/String must contain at least 8 character/);
+        expect(() => validateConfig()).toThrow(/Senha deve ter pelo menos 8 caracteres/);
     });
 
     test('deve rejeitar porta de dispositivo inválida', () => {
@@ -105,7 +105,7 @@ describe('Config Validator', () => {
             batchSize: 0
         };
 
-        expect(() => validateConfig()).toThrow(/Number must be greater than or equal to 1/);
+        expect(() => validateConfig()).toThrow(/Tamanho do lote deve ser pelo menos 1/);
     });
 
     test('deve rejeitar lista vazia de usuários', () => {
@@ -114,7 +114,7 @@ describe('Config Validator', () => {
             loginUser: []
         };
 
-        expect(() => validateConfig()).toThrow(/Array must contain at least 1 element/);
+        expect(() => validateConfig()).toThrow(/Lista de usuários não pode estar vazia/);
     });
 
     test('deve rejeitar TTL de worker muito baixo', () => {
@@ -123,7 +123,7 @@ describe('Config Validator', () => {
             ttl: 200
         };
 
-        expect(() => validateConfig()).toThrow(/Number must be greater than or equal to 300/);
+        expect(() => validateConfig()).toThrow(/TTL deve ser pelo menos 300 segundos/);
     });
 
     test('deve rejeitar TTL de worker muito alto', () => {
@@ -132,7 +132,7 @@ describe('Config Validator', () => {
             ttl: 90000
         };
 
-        expect(() => validateConfig()).toThrow(/Number must be less than or equal to 86400/);
+        expect(() => validateConfig()).toThrow(/TTL não pode ser maior que 86400 segundos/);
     });
 
     test('deve rejeitar timeout de graceful shutdown muito baixo', () => {
@@ -141,7 +141,7 @@ describe('Config Validator', () => {
             gracefulShutdownTimeout: 20
         };
 
-        expect(() => validateConfig()).toThrow(/Number must be greater than or equal to 30/);
+        expect(() => validateConfig()).toThrow(/Timeout de graceful shutdown deve ser pelo menos 30 segundos/);
     });
 
     test('deve rejeitar timeout de graceful shutdown muito alto', () => {
@@ -150,6 +150,6 @@ describe('Config Validator', () => {
             gracefulShutdownTimeout: 400
         };
 
-        expect(() => validateConfig()).toThrow(/Number must be less than or equal to 300/);
+        expect(() => validateConfig()).toThrow(/Timeout de graceful shutdown não pode ser maior que 300 segundos/);
     });
 }); 

@@ -1,11 +1,11 @@
 // Mock das variáveis de ambiente para testes
 process.env = {
     ...process.env,
-    IXC_CDY_TOKEN: '04:8f9e2a3b7c6d1f4e5d8c9b2a3f6e8d7c4b5a9f8e2d1c3b7a4f6e8d9c5b2a3f',
+    IXC_CDY_TOKEN: '04:8f9e2a3b7c6d1f4e5d8c9b2a3f6e8d7c4b5a9f8e2d1c3b7a4f6e8d9c5b2a3f7',
     IXC_CDY_URL: 'https://ixc.example.com/webservice/v1',
-    IXC_BD_TOKEN: '12:3a7b4c8d2e5f9g6h1i4j7k2l5m8n3o6p9q2r5s8t1u4v7w0x3y6z9a2b5c8d',
+    IXC_BD_TOKEN: '12:3a7b4c8d2e5f9a6b1c4d7e2f5a8b3c6d9e2f5a8b1c4d7e0f3a6b9c2d5e8f1',
     IXC_BD_URL: 'https://ixc.example.com/webservice/v1',
-    IXC_BR364_TOKEN: '17:5x8y2z7a4b1c6d3e9f5g2h8i4j1k7l3m9n5o2p8q4r1s7t3u9v5w2x8y4z',
+    IXC_BR364_TOKEN: '17:5a8b2c7d4e1f6a3b9c5d2e8f4a1b7c3d9e5f2a8b4c1d7e3f9a5b2c8d4e6f',
     IXC_BR364_URL: 'https://ixc.example.com/webservice/v1',
     TR069_URL: 'http://acs.example.com',
     TR069_USERNAME: 'admin',

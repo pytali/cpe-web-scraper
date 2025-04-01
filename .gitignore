@@ -44,4 +44,4 @@ cpe-web-access.iml
 devices.json
 loginerror.json
 
-logs
+logs.env.test

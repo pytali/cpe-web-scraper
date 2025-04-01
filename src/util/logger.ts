@@ -1,23 +1,40 @@
-import { createLogger, transports, format } from 'winston';
+import winston from 'winston';
+import { format } from 'winston';
+const { combine, timestamp, printf } = format;
 
-const logger = createLogger({
-    level: 'info',
-    format: format.combine(
-        format.timestamp({
-            format: () => {
-                let date = new Date();
-                return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().slice(0, -1)
-            }
-        }),
-        format.colorize({ level: true, colors: { info: 'green', error: 'red', warn: 'yellow' }, all: true }),
-        format.printf(({ timestamp, level, message }) => `${timestamp} [${level}]: ${message}`)
-    ),
-
-    transports: [
-        new transports.Console()
-    ],
-
-
+/**
+ * Custom format for log messages.
+ * Includes timestamp, level, and message.
+ */
+const customFormat = printf(({ level, message, timestamp }) => {
+    return `${timestamp} [${level}]: ${message}`;
 });
 
-export { logger };
+/**
+ * Winston logger configuration.
+ * - Logs to console and file
+ * - Uses custom format with timestamp
+ * - Saves errors to error.log
+ * - Saves all logs to combined.log
+ */
+export const logger = winston.createLogger({
+    format: combine(
+        timestamp(),
+        customFormat
+    ),
+    transports: [
+        // Console output with all levels
+        new winston.transports.Console({
+            level: 'debug'
+        }),
+        // File output for errors only
+        new winston.transports.File({
+            filename: 'error.log',
+            level: 'error'
+        }),
+        // File output for all logs
+        new winston.transports.File({
+            filename: 'combined.log'
+        })
+    ]
+});

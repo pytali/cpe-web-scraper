@@ -1,46 +1,45 @@
 import * as fs from 'node:fs';
 import csvParser from 'csv-parser';
+import { logger } from './logger';
 
 /**
- * Reads IP addresses from a CSV file at the given `filePath`.
- * Uses a CSV parser to extract rows and collect the `ip` field.
- * Resolves with an array of IP addresses or rejects on error.
- *
- * Example usage:
- * ```js
- * import {readIPColumnFromCSV} from "./util/CsvParser";
- * const csvFilePath = './example.csv';
- *
- * (async () => {
- *      const arrIP = await readIPColumnFromCSV(csvFilePath);
- *
- *      for (const item of arrIP) {
- *          console.log(item);
- *       }
- *  })();
- *
- * ```
- *
- * @param {string} filePath - The path to the CSV file.
- * @returns {Promise<string[]>} A Promise resolving to an array of IP addresses.
- *
+ * Reads IP addresses from a CSV file.
+ * @param {string} filePath - Path to the CSV file.
+ * @returns {Promise<string[]>} Array of IP addresses.
  */
+export async function readIpsFromCsv(filePath: string): Promise<string[]> {
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+        logger.error('❌ CSV file not found');
+        return [];
+    }
 
-export async function readIPColumnFromCSV(filePath: string): Promise<string[]> {
+    // Check if file is empty
+    const stats = fs.statSync(filePath);
+    if (stats.size === 0) {
+        logger.error('❌ CSV file is empty');
+        return [];
+    }
+
     return new Promise((resolve, reject) => {
-        const ips: string[] = [];
+        const records: string[] = [];
+
         fs.createReadStream(filePath)
-            .pipe(csvParser())
-            .on('data', (row: { ip: string; }) => {
-                if (row.ip) {
-                    ips.push(row.ip);
-                }
+            .pipe(csvParser({
+                headers: false,
+                skipLines: 0
+            }))
+            .on('data', (row: Record<string, string>) => {
+                // Assume IP is in the first column
+                const ip = Object.values(row)[0];
+                if (ip) records.push(ip);
+            })
+            .on('error', (error) => {
+                logger.error(`❌ Error parsing CSV: ${error.message}`);
+                reject(error);
             })
             .on('end', () => {
-                resolve(ips);
-            })
-            .on('error', (error: unknown) => {
-                reject(error);
+                resolve(records);
             });
     });
 }

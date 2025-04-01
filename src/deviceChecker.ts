@@ -30,11 +30,10 @@ export class DeviceChecker {
      */
     async detectDevice(): Promise<string | Error> {
         if (!(this.page instanceof Page)) {
-            return new Error('❌ Page not found.');
+            return new Error('❌ Page not found');
         }
 
         const mainFrame = this.page.frames().find(frame => frame.name() === 'mainFrame');
-
 
         if (!mainFrame) {
             const modelF6600P = await this.page.evaluate(() => {
@@ -67,8 +66,7 @@ export class DeviceChecker {
                 return 'H3601';
             }
 
-            return new Error('❌ Device detection failed.');
-
+            return new Error('❌ Device detection failed');
         }
 
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -85,7 +83,7 @@ export class DeviceChecker {
             return 'F670L_OLD';
         }
 
-        return new Error('❌ Device detection failed.');
+        return new Error('❌ Device detection failed');
     }
 
     /**

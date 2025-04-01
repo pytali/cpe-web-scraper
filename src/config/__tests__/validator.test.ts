@@ -31,7 +31,9 @@ const defaultConfig = {
     },
     WORKER_CONFIG: {
         batchSize: 2,
-        poolSize: 1
+        poolSize: 1,
+        ttl: 3600,
+        gracefulShutdownTimeout: 60
     }
 };
 
@@ -113,5 +115,41 @@ describe('Config Validator', () => {
         };
 
         expect(() => validateConfig()).toThrow(/Array must contain at least 1 element/);
+    });
+
+    test('deve rejeitar TTL de worker muito baixo', () => {
+        mockModule.WORKER_CONFIG = {
+            ...mockModule.WORKER_CONFIG,
+            ttl: 200
+        };
+
+        expect(() => validateConfig()).toThrow(/Number must be greater than or equal to 300/);
+    });
+
+    test('deve rejeitar TTL de worker muito alto', () => {
+        mockModule.WORKER_CONFIG = {
+            ...mockModule.WORKER_CONFIG,
+            ttl: 90000
+        };
+
+        expect(() => validateConfig()).toThrow(/Number must be less than or equal to 86400/);
+    });
+
+    test('deve rejeitar timeout de graceful shutdown muito baixo', () => {
+        mockModule.WORKER_CONFIG = {
+            ...mockModule.WORKER_CONFIG,
+            gracefulShutdownTimeout: 20
+        };
+
+        expect(() => validateConfig()).toThrow(/Number must be greater than or equal to 30/);
+    });
+
+    test('deve rejeitar timeout de graceful shutdown muito alto', () => {
+        mockModule.WORKER_CONFIG = {
+            ...mockModule.WORKER_CONFIG,
+            gracefulShutdownTimeout: 400
+        };
+
+        expect(() => validateConfig()).toThrow(/Number must be less than or equal to 300/);
     });
 }); 

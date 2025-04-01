@@ -1,15 +1,15 @@
 import { z } from 'zod';
 import { IXC_CONFIG, TR069_CONFIG, DEVICE_CONFIG, WORKER_CONFIG } from './index.ts';
 
-// Regex para validar o formato do token IXC (XX:hash)
+// Regex to validate IXC token format (XX:hash)
 const tokenRegex = /^\d+:[a-f0-9]{64}$/;
-// Regex para validar URLs sem barra no final
+// Regex to validate URLs without trailing slash
 const urlRegex = /^https?:\/\/[^\s/]+(?:\/[^\s/]+)*$/;
 
-// Schema para configuração IXC
+// Schema for IXC configuration
 const IXCProviderSchema = z.object({
-    TOKEN: z.string().regex(tokenRegex, 'Token deve estar no formato XX:hash'),
-    BASEURL: z.string().regex(urlRegex, 'URL não deve terminar com barra')
+    TOKEN: z.string().regex(tokenRegex, 'Token must be in format XX:hash'),
+    BASEURL: z.string().regex(urlRegex, 'URL must not end with a slash')
 });
 
 const IXCConfigSchema = z.object({
@@ -18,7 +18,7 @@ const IXCConfigSchema = z.object({
     BR364: IXCProviderSchema
 });
 
-// Schema para configuração TR-069
+// Schema for TR-069 configuration
 const TR069ConfigSchema = z.object({
     url: z.string().url(),
     username: z.string().min(1),
@@ -26,23 +26,24 @@ const TR069ConfigSchema = z.object({
     connectionRequestUsername: z.string().min(1),
     connectionRequestPassword: z.string().min(8),
     periodicInformInterval: z.string().regex(/^\d+$/)
-
 });
 
-// Schema para configuração de dispositivos
+// Schema for device configuration
 const DeviceConfigSchema = z.object({
     port: z.string()
-        .regex(/^\d+$/, 'Porta deve ser um número')
+        .regex(/^\d+$/, 'Port must be a number')
         .transform(val => parseInt(val, 10))
-        .refine(val => val >= 1 && val <= 65535, 'Porta deve estar entre 1 e 65535'),
+        .refine(val => val >= 1 && val <= 65535, 'Port must be between 1 and 65535'),
     loginUser: z.array(z.string()).min(1),
     loginPassword: z.array(z.string()).min(1)
 });
 
-// Schema para configuração de workers
+// Schema for worker configuration
 const WorkerConfigSchema = z.object({
     batchSize: z.number().int().min(1).max(200),
-    poolSize: z.number().int().min(1).max(10)
+    poolSize: z.number().int().min(1).max(10),
+    ttl: z.number().int().min(20).max(120),
+    gracefulShutdownTimeout: z.number().int().min(30).max(300)
 });
 
 export type ValidatedIXCConfig = z.infer<typeof IXCConfigSchema>;
@@ -86,7 +87,7 @@ export function validateConfig() {
     }
 
     if (errors.length > 0) {
-        throw new Error('Erro de validação nas configurações:\n' + errors.join('\n'));
+        throw new Error('Configuration validation error:\n' + errors.join('\n'));
     }
 
     return {

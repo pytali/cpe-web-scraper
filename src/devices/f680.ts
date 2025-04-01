@@ -1,3 +1,7 @@
+/**
+ * Represents a F680 device and provides methods to configure WAN, DNS, and TR-069
+ * through Puppeteer-based interactions.
+ */
 import { Frame, Page } from 'puppeteer';
 import { checkLoginInAllServices } from "../services/Search.service.ts";
 import { ClearmacInAllServices } from "../services/ClearMac.service.ts";
@@ -5,15 +9,33 @@ import { TR069_CONFIG } from '../config/index.ts';
 import { logger } from '../util/logger';
 
 export class F680 {
+    /**
+     * The Puppeteer page instance used to interact with the device's web UI.
+     */
     private page: Page;
 
+    /**
+     * The identifier or name of the device.
+     */
     private readonly device: string;
 
+    /**
+     * Creates an instance of F680.
+     * @param {Page} page - Puppeteer page instance.
+     * @param {string} device - The device identifier.
+     */
     constructor(page: Page, device: string) {
         this.page = page;
         this.device = device;
     }
 
+    /**
+     * Checks whether a WAN with the specified name is configured.
+     * @private
+     * @async
+     * @param {Frame} element - The frame element to check.
+     * @returns {Promise<boolean>} True if WAN is found, otherwise false.
+     */
     private async checkWan(element: Frame) {
         try {
             const wans = await element.$$eval('#Frm_WANCName0 option', options => {
@@ -23,7 +45,7 @@ export class F680 {
                 }));
             });
 
-            // Verifica se já existe um WAN Internet_TR069 ou omci
+            // Check if Internet_TR069 or omci WAN already exists
             const hasTargetWan = wans.some(wan =>
                 wan.text && (
                     wan.text === 'Internet_TR069' ||
@@ -32,19 +54,41 @@ export class F680 {
             );
 
             if (!hasTargetWan) {
-                logger.info('❌ WAN Internet_TR069 não configurado.');
+                logger.info('❌ WAN Internet_TR069 not configured');
                 return false;
             }
 
-            logger.info('✅ WAN Internet_TR069 encontrado.');
+            logger.info('✅ WAN Internet_TR069 found');
             return true;
         } catch (error) {
-            logger.error(`❌ Erro ao verificar WANs: ${error}`);
+            logger.error(`❌ Error checking WANs: ${error}`);
             return false;
         }
     }
 
-    async configureWan() {
+    /**
+     * Ensures that a checkbox element is checked.
+     * @private
+     * @async
+     * @param {Frame} iframe - The frame containing the checkbox.
+     * @param {string} selector - The selector for the checkbox element.
+     */
+    private async ensureCheckboxChecked(iframe: Frame, selector: string) {
+        await iframe.waitForSelector(selector, { visible: true });
+        const isChecked = await iframe.$eval(selector, el => (el as HTMLInputElement).checked);
+        if (!isChecked) {
+            await iframe.click(selector);
+        }
+    }
+
+    /**
+     * Configures the WAN on the F680 device.
+     * @async
+     * @returns {Promise<{type: string, user: string, vlan: string, pass: string, priority: string, service_list: string, name: string} | Error>} The WAN config or an Error.
+     */
+    async configureWAN() {
+        logger.info(`🌎️ Configuring WAN for ${this.device}...`);
+
         const LinkMode = {
             'PPP': 'PPPoE', 'IP': 'DHCP'
         };
@@ -67,352 +111,165 @@ export class F680 {
             name: 'Internet_TR069'
         };
 
-        const iframe = this.page.frames().find(frame => frame.name() === 'mainFrame');
-        if (!iframe) {
-            logger.error('❌ Iframe with name "mainFrame" not found.');
+        const mainFrame = this.page.frames().find(frame => frame.name() === 'mainFrame');
+
+        if (!mainFrame) {
+            return new Error('❌ Main frame not found');
+        }
+
+        await mainFrame.waitForSelector('#Frm_WANCName0');
+
+        const wanName = await this.checkWan(mainFrame);
+
+        if (wanName) {
+            logger.info('WAN already configured!');
             return UserAuth;
         }
 
-        await iframe.waitForSelector('#Fnt_mmNet');
-        await iframe.click('#Fnt_mmNet');
+        await mainFrame.waitForSelector('#Frm_WANCName0');
 
-        await iframe.waitForNavigation({ waitUntil: 'networkidle2' });
-        await iframe.waitForSelector('#Frm_WANCName0');
+        const wanValue = await mainFrame.$eval('#Frm_WANCName0', el => (el as HTMLInputElement).value);
 
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        if (wanValue.toLowerCase().includes('omci')) {
+            logger.info('WAN OK');
+            return UserAuth;
+        }
 
+        UserAuth.user = await mainFrame.$eval('#Frm_Username', (el => (el as HTMLInputElement).value));
+        const linkType = await mainFrame.$eval('#Frm_LinkMode', (el => (el as HTMLInputElement).value));
 
-        // Busca todos os WANs disponíveis
-        const wans = await iframe.$$eval('#Frm_WANCName0 option', options => {
-            return options.map(option => ({
-                value: option.getAttribute('value'),
-                text: option.textContent?.trim()
-            }));
-        });
-
-        // Procura por um WAN existente que não seja Internet_TR069
-        const existingWan = wans.find(wan =>
-            wan.value &&
-            wan.value !== '-1' &&
-            wan.text &&
-            !wan.text.includes('Internet_TR069') &&
-            !wan.text.includes('omci')
-        );
-
-        // Se encontrou um WAN existente, seleciona ele para configuração
-        if (existingWan && existingWan.value) {
-            logger.info(`Selecionando WAN existente: ${existingWan.text}`);
-            await iframe.select('#Frm_WANCName0', existingWan.value);
+        if (linkType === 'PPP') {
+            UserAuth.type = LinkMode.PPP;
         } else {
-            logger.info('Nenhum WAN existente encontrado para configuração');
-            return UserAuth;
+            UserAuth.type = LinkMode.IP;
         }
 
-        await iframe.waitForNavigation({ waitUntil: 'networkidle2' });
+        const userLogin = await checkLoginInAllServices(UserAuth.user);
 
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        await iframe.waitForSelector('#Frm_UserName');
-
-        const wanChecker = await this.checkWan(iframe);
-
-        if (wanChecker) {
-            const linkType = await iframe.$eval('#Frm_linkMode', (el => (el as HTMLInputElement).value));
-            logger.info('WAN already configured.');
-            UserAuth.type = LinkMode[linkType as keyof typeof LinkMode];
-            return UserAuth;
+        if (userLogin instanceof Error) {
+            await ClearmacInAllServices(UserAuth.user);
         }
 
-        UserAuth.user = await iframe.$eval('#Frm_UserName', (el => (el as HTMLInputElement).value));
-        const linkType = await iframe.$eval('#Frm_linkMode', (el => (el as HTMLInputElement).value));
-
-        if (linkType !== 'PPP') {
-            logger.info('IPOE CONFIGURED');
-            UserAuth.vlan = await iframe.$eval('#Frm_VLANID', (el => (el as HTMLInputElement).value));
-            UserAuth.priority = await iframe.$eval('#Frm_Priority', (el => (el as HTMLInputElement).value));
-            await new Promise(resolve => setTimeout(resolve, 500));
-            await iframe.select('#Frm_WANCName0', "-1");
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            await iframe.type('#Frm_WANCName1', UserAuth.name);
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await iframe.click('#Frm_WBDMode');
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await iframe.select('#Frm_ServList', '3');
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await iframe.select('#Frm_linkMode', 'IP');
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await iframe.select('#Frm_Priority', UserAuth.priority);
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await iframe.type('#Frm_VLANID', UserAuth.vlan);
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await iframe.select('#Frm_IsAuto', '1');
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await iframe.select('#Frm_Prefix', 'DHCP');
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await iframe.click('#Frm_IsPdAddr');
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await iframe.click('#Btn_Add');
-            await iframe.waitForNavigation({ waitUntil: 'networkidle2' });
-
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            UserAuth.user = 'IPOE';
-
-            return UserAuth;
-        }
-
-        UserAuth.type = LinkMode[linkType as keyof typeof LinkMode];
-        const loginResult = await checkLoginInAllServices(UserAuth.user);
-
-        if (loginResult instanceof Error) {
-            return loginResult;
-        }
-
-        UserAuth.pass = loginResult.senha;
-        UserAuth.vlan = await iframe.$eval('#Frm_VLANID', (el => (el as HTMLInputElement).value));
-        UserAuth.priority = await iframe.$eval('#Frm_Priority', (el => (el as HTMLInputElement).value));
-
-        await iframe.select('#Frm_WANCName0', "-1");
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        await iframe.waitForSelector('#Frm_UserName');
-
-        await iframe.type('#Frm_WANCName1', UserAuth.name);
-        await iframe.type('#Frm_UserName', UserAuth.user);
-        await iframe.type('#Frm_Password', UserAuth.pass);
-        await iframe.click('#Frm_WBDMode');
-        await iframe.select('#Frm_ServList', '3');
-        await iframe.select('#Frm_Priority', UserAuth.priority);
-        await iframe.type('#Frm_VLANID', UserAuth.vlan);
-        await iframe.select('#Frm_IsAuto', '1');
-        await iframe.select('#Frm_Prefix', 'DHCP');
-        await iframe.click('#Frm_IsPdAddr');
-
-        const clearMac = await ClearmacInAllServices(loginResult.id);
-
-        if (clearMac instanceof Error) {
-            logger.error(clearMac.message);
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        await iframe.click('#Btn_Add');
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        logger.info(`✅ WAN configured successfully on ${this.device}!`);
         return UserAuth;
     }
 
-    private async configureTR069(wan: string) {
-        logger.info('⚙️ Configuring TR-069 for ' + this.device + '...');
+    /**
+     * Checks if DNS is configured properly and updates the DNS settings if needed.
+     * @async
+     * @returns {Promise<void>} No return value.
+     */
+    async checkDNS() {
+        logger.info(`🔍 Checking DNS for ${this.device}...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Navigate to TR-069 configuration page
-        await this.navigateToTR069Page();
+        const mainFrame = this.page.frames().find(frame => frame.name() === 'mainFrame');
 
-        // Interact with the iframe and configure TR-069
-        const iframe = await this.getIframe('#mainFrame');
-        if (!iframe) {
-            logger.error('Iframe with ID "mainFrame" not found or not accessible.');
+        if (!mainFrame) {
+            logger.error('❌ Main frame not found');
             return;
         }
 
-        logger.info("📄 Iframe found. Interacting with form fields...");
+        await mainFrame.waitForSelector('#Frm_DNSServer1');
+        await mainFrame.waitForSelector('#Frm_DNSServer2');
 
-        await this.fillTR069Form(iframe, wan);
+        const dns1 = await mainFrame.$eval('#Frm_DNSServer1', el => (el as HTMLInputElement).value);
+        const dns2 = await mainFrame.$eval('#Frm_DNSServer2', el => (el as HTMLInputElement).value);
 
-        logger.info('✅ TR-069 configured successfully on ' + this.device + '!');
-    }
+        if (dns1 !== '177.221.56.3' || dns2 !== '177.221.56.10') {
+            logger.error('🚨 DNS is not configured correctly!');
+            logger.info(`🔧 Configuring DNS for ${this.device}...`);
 
-    private async navigateToTR069Page() {
-        await this.page.evaluate(() => {
-            const iframe = document.getElementById("mainFrame") as HTMLIFrameElement | null;
-            if (!iframe) {
-                logger.error('❌ Iframe with ID "mainFrame" not found.');
-                return;
-            }
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-            if (!iframeDoc) {
-                logger.error('❌ Iframe document not accessible.');
-                return;
-            }
-            (iframeDoc.querySelector('#Fnt_mmManager') as HTMLElement)?.click();
-        });
+            await mainFrame.$eval('#Frm_DNSServer1', el => (el as HTMLInputElement).value = '');
+            await mainFrame.type('#Frm_DNSServer1', '177.221.56.3');
 
-        // await this.page.waitForNavigation({ waitUntil: 'networkidle2' });
-    }
+            await mainFrame.$eval('#Frm_DNSServer2', el => (el as HTMLInputElement).value = '');
+            await mainFrame.type('#Frm_DNSServer2', '177.221.56.10');
 
-    private async getIframe(selector: string) {
-        const iframeElement = await this.page.waitForSelector(selector);
-        return iframeElement ? await iframeElement.contentFrame() : null;
-    }
-
-    private async fillTR069Form(iframe: Frame, wan: string) {
-        const formFields = {
-            '#Frm_URL': TR069_CONFIG.url, // Updated ACS URL
-            '#Frm_UserName': TR069_CONFIG.username, // Updated Username
-            '#Frm_UserPassword': TR069_CONFIG.password, // Updated Password
-            '#Frm_ConnectionRequestUsername': TR069_CONFIG.connectionRequestUsername, // Updated Connection Request Username
-            '#Frm_ConnectionRequestPassword': TR069_CONFIG.connectionRequestPassword, // Updated Connection Request Password
-            '#Frm_PeriodicInformInterval': TR069_CONFIG.periodicInformInterval, // Updated Periodic Inform Interval
-        };
-
-        await iframe.waitForSelector('#TestContent', { visible: true });
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-
-        // Fill form fields
-        for (const [selector, value] of Object.entries(formFields)) {
-            await iframe.waitForSelector(selector, { visible: true });
-            await iframe.$eval(selector, (el, val) => ((el as HTMLInputElement).value = String(val)), value);
+            await mainFrame.click('#Btn_Submit');
+            logger.info(`✅ DNS configured successfully on ${this.device}!`);
         }
 
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-
-        const wanListValue = await iframe.$$eval('#Frm_DefaultWan option', options => {
-            return options.map(option => {
-                const value = option.getAttribute('value');
-                const text = option.textContent;
-                return { value, text };
-            });
-        });
-
-        const wanName = wanListValue.find(wanListValue => {
-
-            if (wanListValue.value === null || wanListValue.text === null) {
-                return false;
-            }
-
-            return wanListValue.text === wan;
-
-
-        });
-
-        if (wanName && wanName.value) {
-            await iframe.select('#Frm_DefaultWan', wanName.value);
-        } else {
-            // no WAN found to select
-        }
-
-        // Enable Periodic Inform checkbox if not already checked
-        await this.ensureCheckboxChecked(iframe, '#Frm_PeriodicInformEnable');
-        await iframe.click('#Frm_RemoteUpgradeCertAuth')
-
-        // Enable Certificate Authentication checkbox if not already checked
-        // await this.ensureCheckboxChecked(iframe, '#Frm_SupportCertAuth');
-
-        // Submit the form
-
-        await iframe.evaluate(() => {
-
-            const submitButton = document.querySelector('#Btn_Submit') as HTMLElement;
-            if (submitButton) {
-                submitButton.click();
-            } else {
-                logger.error("❌ Submit button not found!");
-            }
-        })
-
-        await iframe.waitForNavigation({ waitUntil: 'networkidle2' });
-
-        // await iframe.waitForSelector('#Btn_Submit', { visible: true });
-        // await iframe.click('#Btn_Submit');
-
-        logger.info('📨 Form submitted successfully!');
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        logger.info(`✅ DNS configured correctly on ${this.device}!`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
-    private async ensureCheckboxChecked(iframe: Frame, selector: string) {
-        await iframe.waitForSelector(selector, { visible: true });
-        const isChecked = await iframe.$eval(selector, el => (el as HTMLInputElement).checked);
-        if (!isChecked) {
-            await iframe.click(selector);
-        }
-    }
+    /**
+     * Configures TR-069 settings on the device.
+     * @async
+     * @returns {Promise<void>} No return value.
+     */
+    async configureTR069() {
+        logger.info(`🔧 Configuring TR-069 for ${this.device}...`);
 
-    private async logout() {
+        const mainFrame = this.page.frames().find(frame => frame.name() === 'mainFrame');
 
-        const iframe = this.page.frames().find(frame => frame.name() === 'mainFrame');
-        if (!iframe) {
-            logger.error('❌ Iframe with name "mainFrame" not found.');
+        if (!mainFrame) {
+            logger.error('❌ Main frame not found');
             return;
         }
 
-        await iframe.waitForSelector('#Fnt_mmNet');
-        await iframe.click('#Fnt_mmNet');
+        await mainFrame.waitForSelector('#Frm_URL');
+        await mainFrame.$eval('#Frm_URL', el => (el as HTMLInputElement).value = '');
+        await mainFrame.type('#Frm_URL', TR069_CONFIG.url);
 
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await mainFrame.waitForSelector('#Frm_Username');
+        await mainFrame.$eval('#Frm_Username', el => (el as HTMLInputElement).value = '');
+        await mainFrame.type('#Frm_Username', TR069_CONFIG.username);
 
-        const wan = await iframe.$$eval('#Frm_WANCName0 option', options => {
-            return options.map(option => {
-                const value = option.getAttribute('value');
-                const text = option.textContent;
-                return { value, text };
-            });
-        });
+        await mainFrame.waitForSelector('#Frm_Password');
+        await mainFrame.$eval('#Frm_Password', el => (el as HTMLInputElement).value = '');
+        await mainFrame.type('#Frm_Password', TR069_CONFIG.password);
 
+        await mainFrame.waitForSelector('#Frm_PeriodicInformEnable');
+        await this.ensureCheckboxChecked(mainFrame, '#Frm_PeriodicInformEnable');
 
-        const wanName = wan.filter(wan => {
+        await mainFrame.waitForSelector('#Frm_PeriodicInformInterval');
+        await mainFrame.$eval('#Frm_PeriodicInformInterval', el => (el as HTMLInputElement).value = '');
+        await mainFrame.type('#Frm_PeriodicInformInterval', '60');
 
-            if (wan.value === null || wan.text === null) {
-                return false;
-            }
-
-            // Filter out 'Internet_TR069' and 'omci' options
-            return !wan.text.includes('Internet_TR069') && !wan.text.includes('omci') && wan.value !== '-1';
-
-        });
-
-        // Check if "Internet_TR069" is already configured
-        const isWanConfigured = wan.some(wan => wan.text === 'Internet_TR069');
-
-        if (!isWanConfigured) {
-            logger.info('❌ WAN "Internet_TR069" not configured.');
-            return;
-        }
-
-
-        for (const wan of wanName) {
-            if (wan.value === null || wan.text === null) {
-                return false;
-            }
-
-
-            await iframe.select('#Frm_WANCName0', wan.value);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            await iframe.click('#Btn_Delete')
-            logger.info(`Deleting WAN: ${wan.text} (${wan.value})`);
-
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-        }
-
-
+        await mainFrame.click('#Btn_Submit');
+        logger.info(`✅ TR-069 configured successfully on ${this.device}!`);
     }
 
+    /**
+     * Runs the complete configuration process for the device.
+     * @async
+     * @returns {Promise<{type: string, user: string, vlan: string, pass: string, priority: string, service_list: string, name: string} | Error>} The configuration result or an Error.
+     */
     async run() {
         try {
-            const wan = await this.configureWan();
+            const mainFrame = this.page.frames().find(frame => frame.name() === 'mainFrame');
 
-            if (wan instanceof Error) {
-                logger.error('❌ Error configuring WAN:' + wan);
-                return wan;
+            if (!mainFrame) {
+                return new Error('❌ Main frame not found');
             }
 
-            await this.configureTR069(wan.name);
+            await mainFrame.waitForSelector('#menu_network');
+            await mainFrame.click('#menu_network');
 
+            await mainFrame.waitForSelector('#menu_wan');
+            await mainFrame.click('#menu_wan');
 
-            if (wan.user === 'multipro' && wan.type === 'PPPoE') {
-                return wan;
+            const wanConfig = await this.configureWAN();
+
+            if (wanConfig instanceof Error) {
+                return wanConfig;
             }
 
-            await this.logout()
+            await mainFrame.waitForSelector('#menu_dns');
+            await mainFrame.click('#menu_dns');
 
-            return wan;
+            await this.checkDNS();
+
+            await mainFrame.waitForSelector('#menu_tr069');
+            await mainFrame.click('#menu_tr069');
+
+            await this.configureTR069();
+
+            return wanConfig;
         } catch (error) {
-            logger.error('❌ An error occurred:' + error);
+            logger.error(`❌ Error configuring device: ${error}`);
+            return new Error('❌ Error configuring device');
         }
     }
 }

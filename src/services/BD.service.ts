@@ -43,7 +43,7 @@ async function clearMacBD(id: string): Promise<Clearmac | Error> {
  */
 async function getLoginBD(login: string): Promise<Error | Radusuarios> {
     if (!login) {
-        return new Error('Login não informado');
+        return new Error('Login not provided');
     }
     const response: AxiosResponse<IxcData<Radusuarios>> = await IXCApi.get(IXCBASE.BD, '/radusuarios', {
         qtype: 'radusuarios.login',
@@ -52,13 +52,13 @@ async function getLoginBD(login: string): Promise<Error | Radusuarios> {
     });
 
     if (!response) {
-        return new Error('Erro ao buscar login' + response);
+        return new Error('Error fetching login: ' + response);
     }
 
     if (response.data.registros) {
         return response.data.registros[0];
     }
-    return new Error('Login não encontrado');
+    return new Error('Login not found');
 }
 
 export { clearMacBD, getLoginBD };

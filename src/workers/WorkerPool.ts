@@ -1,5 +1,6 @@
 import { Worker } from 'worker_threads';
 import { logger } from '../util/logger.ts';
+import { WORKER_CONFIG } from '../config/index.ts';
 
 class WorkerPool {
     private workerPath: string;
@@ -7,8 +8,10 @@ class WorkerPool {
     private taskQueue: string[] = [];
     private activeWorkers: Set<Worker> = new Set();
     private isShuttingDown: boolean = false;
-    private readonly WORKER_TTL = 30000; // 30 segundos em milissegundos
+    private readonly workerTTL: number;
+    private readonly gracefulShutdownTimeout: number;
     private workerTimers: Map<Worker, NodeJS.Timeout> = new Map();
+    private shutdownTimer: NodeJS.Timeout | null = null;
 
     /**
      * Creates an instance of WorkerPool.
@@ -18,12 +21,14 @@ class WorkerPool {
     constructor(workerPath: string, poolSize: number) {
         this.workerPath = workerPath;
         this.poolSize = poolSize;
+        this.workerTTL = WORKER_CONFIG.ttl * 1000; // Convert seconds to milliseconds
+        this.gracefulShutdownTimeout = WORKER_CONFIG.gracefulShutdownTimeout * 1000;
     }
 
     /**
-     * Termina um worker e limpa seus recursos associados
-     * @param {Worker} worker - O worker a ser terminado
-     * @param {string} reason - O motivo do término
+     * Terminates a worker and cleans up its associated resources
+     * @param {Worker} worker - The worker to terminate
+     * @param {string} reason - The reason for termination
      */
     private terminateWorker(worker: Worker, reason: string): void {
         const timer = this.workerTimers.get(worker);
@@ -33,7 +38,7 @@ class WorkerPool {
         }
         this.activeWorkers.delete(worker);
         worker.terminate();
-        logger.warn(`Worker terminado: ${reason}`);
+        logger.warn(`Worker terminated: ${reason}`);
     }
 
     /**
@@ -46,16 +51,16 @@ class WorkerPool {
         return new Promise((resolve, reject) => {
             const worker = new Worker(this.workerPath, { workerData: { ip, loginUser } });
 
-            // Configura o timer de TTL
+            // Configure TTL timer
             const ttlTimer = setTimeout(() => {
-                this.terminateWorker(worker, `TTL excedido (${this.WORKER_TTL}ms) para IP ${ip}`);
+                this.terminateWorker(worker, `TTL exceeded (${this.workerTTL / 1000} seconds) for IP ${ip}`);
                 resolve({
                     ip,
                     result: {
-                        message: `Operação cancelada: tempo limite de ${this.WORKER_TTL / 1000} segundos excedido`
+                        message: `Operation cancelled: time limit of ${this.workerTTL / 1000} seconds exceeded`
                     }
                 });
-            }, this.WORKER_TTL);
+            }, this.workerTTL);
 
             this.workerTimers.set(worker, ttlTimer);
 
@@ -70,12 +75,12 @@ class WorkerPool {
             });
 
             worker.on('error', (error) => {
-                this.terminateWorker(worker, `Erro no worker para IP ${ip}`);
+                this.terminateWorker(worker, `Error in worker for IP ${ip}`);
                 reject(error);
             });
 
             worker.on('exit', (code) => {
-                this.terminateWorker(worker, `Worker encerrado com código ${code}`);
+                this.terminateWorker(worker, `Worker exited with code ${code}`);
                 if (code !== 0) reject(new Error(`Worker exited with code ${code}`));
             });
 
@@ -84,35 +89,57 @@ class WorkerPool {
     }
 
     /**
-     * Aguarda a conclusão de todas as tarefas em andamento
-     * @returns {Promise<void>} - Uma promise que resolve quando todas as tarefas são concluídas
+     * Waits for all ongoing tasks to complete with timeout
+     * @returns {Promise<void>} - A promise that resolves when all tasks are completed or timeout is reached
      */
     async drain(): Promise<void> {
         this.isShuttingDown = true;
-        logger.info(`Aguardando conclusão de ${this.activeWorkers.size} workers ativos...`);
+        logger.info(`Waiting for ${this.activeWorkers.size} active workers to complete (timeout: ${this.gracefulShutdownTimeout / 1000}s)...`);
 
-        // Aguarda a conclusão de todos os workers ativos
-        while (this.activeWorkers.size > 0) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
+        return new Promise((resolve) => {
+            // Timer to force shutdown after timeout
+            this.shutdownTimer = setTimeout(() => {
+                logger.warn(`Graceful shutdown timeout reached (${this.gracefulShutdownTimeout / 1000}s). Forcing shutdown...`);
+                this.forceShutdown();
+                resolve();
+            }, this.gracefulShutdownTimeout);
+
+            // Periodically check if all workers have finished
+            const checkInterval = setInterval(() => {
+                if (this.activeWorkers.size === 0) {
+                    clearInterval(checkInterval);
+                    if (this.shutdownTimer) clearTimeout(this.shutdownTimer);
+                    resolve();
+                }
+            }, 100);
+        });
     }
 
     /**
-     * Encerra todos os workers e limpa o pool
-     * @returns {Promise<void>} - Uma promise que resolve quando todos os workers são encerrados
+     * Forces shutdown of all workers
      */
-    async shutdown(): Promise<void> {
-        this.isShuttingDown = true;
-
-        // Termina todos os workers ativos
+    private forceShutdown(): void {
         for (const worker of this.activeWorkers) {
-            this.terminateWorker(worker, 'Shutdown do pool');
+            this.terminateWorker(worker, 'Forcing shutdown due to timeout');
         }
-
         this.activeWorkers.clear();
         this.taskQueue = [];
+    }
 
-        logger.info('Worker pool encerrado com sucesso.');
+    /**
+     * Shuts down all workers and cleans up the pool
+     * @returns {Promise<void>} - A promise that resolves when all workers are shut down
+     */
+    async shutdown(): Promise<void> {
+        logger.info('Starting shutdown process...');
+        await this.drain();
+
+        if (this.shutdownTimer) {
+            clearTimeout(this.shutdownTimer);
+            this.shutdownTimer = null;
+        }
+
+        logger.info('Worker pool successfully shut down.');
     }
 
     /**
@@ -123,7 +150,7 @@ class WorkerPool {
      */
     async runTaskQueue(ips: string[], userLogin: string): Promise<{ ip: string; result: any }[]> {
         if (this.isShuttingDown) {
-            throw new Error('Worker pool está em processo de shutdown');
+            throw new Error('Worker pool is in shutdown process');
         }
 
         this.taskQueue.push(...ips);

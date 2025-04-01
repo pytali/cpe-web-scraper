@@ -10,6 +10,7 @@ import * as fs from "node:fs";
 import { DEVICE_CONFIG } from './config/index.ts';
 import { logger } from './util/logger.ts';
 import { H196 } from './devices/h196.ts';
+
 interface ConfigureDevicesResult {
     type: string;
     user: string;
@@ -40,25 +41,24 @@ export async function configureDevices(deviceIP: string, loginUser: string): Pro
      */
     const ipRegex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
     if (!ipRegex.test(deviceIP)) {
-        return new Error('❌ Invalid IP address format.');
+        return new Error('❌ Invalid IP address format');
     }
 
     /**
-     * Validates the device IP address is not empty.
+     * Validates that the device IP address is not empty.
      */
     if (!deviceIP) {
-        return new Error('❌ Device IP address is empty.');
+        return new Error('❌ Device IP address is empty');
     }
+
     /**
-     * Validates the device IP address is not localhost.
+     * Validates that the device IP address is not localhost.
      */
     if (deviceIP === 'localhost') {
-        return new Error('❌ Device IP address cannot be localhost.');
+        return new Error('❌ Device IP address cannot be localhost');
     }
 
-
     const loginErrorFilePath = 'loginerror.json';
-
 
     /**
      * Creates a Login instance for the specified device IP using predefined credentials.
@@ -81,18 +81,18 @@ export async function configureDevices(deviceIP: string, loginUser: string): Pro
         // Write the updated login errors back to the file
         fs.writeFileSync(loginErrorFilePath, JSON.stringify(loginErrors, null, 2));
 
-        return new Error('❌ Unable to login to the device.');
+        return new Error('❌ Unable to login to the device');
     }
 
     // Check for browser launch issues
     if (!page) {
         await login.close();
-        return new Error('❌ Unable to launch the browser.');
+        return new Error('❌ Unable to launch the browser');
     }
 
     if (page instanceof Error) {
         await login.close();
-        return new Error('❌ Unable to launch the browser.');
+        return new Error('❌ Unable to launch the browser');
     }
 
     /**
@@ -135,10 +135,10 @@ export async function configureDevices(deviceIP: string, loginUser: string): Pro
         await login.close();
         return result;
     } else {
-        logger.error('❌ No compatible device detected.');
+        logger.error('❌ No compatible device detected');
     }
 
     // Close the browser if no configuration routine matches
     await login.close();
-    return new Error('❌ No compatible device detected.');
+    return new Error('❌ No compatible device detected');
 }

@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { readIPColumnFromCSV } from "./util/CsvParser.ts";
+import { readIpsFromCsv } from "./util/CsvParser.ts";
 import { stringify } from 'csv-stringify';
 import csvParser from 'csv-parser';
 import WorkerPool from "./workers/WorkerPool.ts";
@@ -16,6 +16,7 @@ if (!WORKER_CONFIG.batchSize || !WORKER_CONFIG.poolSize) {
 
 const BATCH_SIZE = WORKER_CONFIG.batchSize; // Number of IPs to process in each batch
 const POOL_SIZE = WORKER_CONFIG.poolSize; // Number of workers in the worker pool
+const GRACEFUL_SHUTDOWN_TIMEOUT = WORKER_CONFIG.gracefulShutdownTimeout * 1000; // Convert to milliseconds
 
 const devicesFilePath = 'devices.json';
 const loginErrorFilePath = 'loginerror.json';
@@ -25,26 +26,43 @@ interface CsvRow {
     [key: string]: string;
 }
 
-// Variável para controlar o estado de shutdown
+// Variable to control shutdown state
 let isShuttingDown = false;
+let shutdownTimer: NodeJS.Timeout | null = null;
 
-// Função para lidar com o graceful shutdown
+// Function to force shutdown after timeout
+function forceShutdown() {
+    logger.error(`⚠️ Graceful shutdown timeout (${GRACEFUL_SHUTDOWN_TIMEOUT / 1000}s) reached. Forcing shutdown...`);
+    process.exit(1);
+}
+
+// Function to handle graceful shutdown
 async function handleGracefulShutdown(pool: WorkerPool, signal: string) {
     if (isShuttingDown) return;
-
     isShuttingDown = true;
-    logger.warn(`🛑 Recebido sinal ${signal}. Iniciando graceful shutdown...`);
+
+    logger.warn(`🛑 Received signal ${signal}. Starting graceful shutdown...`);
+    logger.info(`⏳ Waiting up to ${GRACEFUL_SHUTDOWN_TIMEOUT / 1000} seconds to complete tasks...`);
+
+    // Configure timer to force shutdown
+    shutdownTimer = setTimeout(forceShutdown, GRACEFUL_SHUTDOWN_TIMEOUT);
 
     try {
-        // Aguarda a conclusão de todas as tarefas em andamento
+        // Wait for all ongoing tasks to complete
         await pool.drain();
-        logger.info('✅ Todas as tarefas foram concluídas com sucesso.');
+        logger.info('✅ All tasks completed successfully.');
     } catch (error) {
-        logger.error('❌ Erro durante o shutdown:', error);
+        logger.error('❌ Error during shutdown:', error);
     } finally {
-        // Encerra o pool de workers
+        // Clear timer if shutdown was successful
+        if (shutdownTimer) {
+            clearTimeout(shutdownTimer);
+            shutdownTimer = null;
+        }
+
+        // Shutdown worker pool
         await pool.shutdown();
-        logger.info('🏁 Aplicação encerrada com sucesso.');
+        logger.info('🏁 Application shut down successfully.');
         process.exit(0);
     }
 }
@@ -69,17 +87,17 @@ const processCSV = (csvFilePath: string, processedIPs: Set<string>): Promise<voi
             .on('end', () => {
                 stringify(remainingRows, { header: true }, (err, output) => {
                     if (err) {
-                        console.error('❌ Error on write CSV:', err);
+                        console.error('❌ Error writing CSV:', err);
                         reject(err);
                         return;
                     }
                     fs.writeFileSync(csvFilePath, output);
-                    logger.info(`✅ IPs processed remove on CSV.`);
+                    logger.info(`✅ Processed IPs removed from CSV.`);
                     resolve();
                 });
             })
             .on('error', (err) => {
-                console.error('❌ Error to read CSV:', err);
+                console.error('❌ Error reading CSV:', err);
                 reject(err);
             });
     });
@@ -107,7 +125,7 @@ const retryFailedLogins = async (pool: WorkerPool, loginErrorFilePath: string, l
 
             for (const { ip, result } of results) {
                 if (result instanceof Error) {
-                    logger.error(`❌ Fail: ${ip} - ${result.message}`);
+                    logger.error(`❌ Failed: ${ip} - ${result.message}`);
                     continue;
                 } else if (result && result.user) {
                     newConfiguredDevices.add(result.user);
@@ -119,12 +137,12 @@ const retryFailedLogins = async (pool: WorkerPool, loginErrorFilePath: string, l
                 fs.writeFileSync(devicesFilePath, JSON.stringify(Array.from(updatedDevices), null, 2));
                 logger.info('✅ devices.json updated.');
             } catch (error) {
-                logger.error('❌ Write error devices.json:' + error);
+                logger.error('❌ Error writing devices.json:' + error);
             }
 
             // Clear the loginerror.json file after processing
             fs.writeFileSync(loginErrorFilePath, JSON.stringify([], null, 2));
-            logger.info(`✅ Retried failed logins with user ${loginUser}.`);
+            logger.info(`✅ Completed retrying failed logins with user ${loginUser}.`);
         }
     }
 };
@@ -137,13 +155,13 @@ const retryFailedLogins = async (pool: WorkerPool, loginErrorFilePath: string, l
 (async () => {
     const csvFilePath = path.join(__dirname, 'resources/radusuarios-bd-1743385861471.csv');
     const workersPath = path.join(__dirname, 'workers/worker.js');
-    const ips = await readIPColumnFromCSV(csvFilePath);
+    const ips = await readIpsFromCsv(csvFilePath);
 
-    logger.info(`🔄 Initiated process on  ${ips.length} IPs in bulk of ${BATCH_SIZE}...`);
+    logger.info(`🔄 Started processing ${ips.length} IPs in batches of ${BATCH_SIZE}...`);
 
     const pool = new WorkerPool(workersPath, POOL_SIZE);
 
-    // Registra os handlers de graceful shutdown
+    // Register graceful shutdown handlers
     process.on('SIGTERM', () => handleGracefulShutdown(pool, 'SIGTERM'));
     process.on('SIGINT', () => handleGracefulShutdown(pool, 'SIGINT'));
     process.on('SIGUSR2', () => handleGracefulShutdown(pool, 'SIGUSR2')); // Nodemon restart
@@ -156,7 +174,7 @@ const retryFailedLogins = async (pool: WorkerPool, loginErrorFilePath: string, l
                 : new Set();
 
             const batch = ips.slice(i, i + BATCH_SIZE);
-            logger.info(`🚀 Bulk process: ${i / BATCH_SIZE + 1} (${batch.length} IPs)...`);
+            logger.info(`🚀 Processing batch: ${i / BATCH_SIZE + 1} (${batch.length} IPs)...`);
 
             const results = await pool.runTaskQueue(batch, DEVICE_CONFIG.loginUser[0]);
 
@@ -168,7 +186,7 @@ const retryFailedLogins = async (pool: WorkerPool, loginErrorFilePath: string, l
 
             for (const { ip, result } of results) {
                 if (result instanceof Error) {
-                    logger.error(`❌ Fail: ${ip} - ${result.message}`);
+                    logger.error(`❌ Failed: ${ip} - ${result.message}`);
                     processedIPs.add(ip)
                     continue;
                 } else if (result && result.user) {
@@ -183,21 +201,21 @@ const retryFailedLogins = async (pool: WorkerPool, loginErrorFilePath: string, l
                 fs.writeFileSync(devicesFilePath, JSON.stringify(Array.from(updatedDevices), null, 2));
                 logger.info('✅ devices.json updated.');
             } catch (error) {
-                logger.error('❌ Write error devices.json:' + error);
+                logger.error('❌ Error writing devices.json:' + error);
             }
             // Remove the processed IPs from the CSV in batch
             await processCSV(csvFilePath, processedIPs);
             await retryFailedLogins(pool, loginErrorFilePath, DEVICE_CONFIG.loginUser[1])
 
-            logger.info(`✅ Batch ${i / BATCH_SIZE + 1} ok .`);
+            logger.info(`✅ Batch ${i / BATCH_SIZE + 1} completed successfully.`);
         }
     } catch (error) {
-        logger.error('❌ Erro durante o processamento:', error);
+        logger.error('❌ Error during processing:', error);
         await handleGracefulShutdown(pool, 'ERROR');
     }
 
     if (!isShuttingDown) {
-        logger.info(`🏁 Process finished.`);
+        logger.info(`🏁 Process completed successfully.`);
         await pool.shutdown();
         process.exit(0);
     }

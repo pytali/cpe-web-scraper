@@ -35,7 +35,9 @@ export const DEVICE_CONFIG = {
 
 export const WORKER_CONFIG = {
     batchSize: parseInt(process.env.WORKER_BATCH_SIZE || "2"),
-    poolSize: parseInt(process.env.WORKER_POOL_SIZE || "1")
+    poolSize: parseInt(process.env.WORKER_POOL_SIZE || "1"),
+    ttl: parseInt(process.env.WORKER_TTL || "3600"),
+    gracefulShutdownTimeout: parseInt(process.env.GRACEFUL_SHUTDOWN_TIMEOUT || "60")
 }
 
 // Valida as configurações ao importar o módulo

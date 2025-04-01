@@ -50,6 +50,8 @@ cp .env.example .env.local
 #### Configuração de Workers
 - `WORKER_BATCH_SIZE`: Tamanho do lote de processamento (1-100)
 - `WORKER_POOL_SIZE`: Número de workers paralelos (1-10)
+- `WORKER_TTL`: Tempo de vida máximo do worker em segundos (300-86400)
+- `GRACEFUL_SHUTDOWN_TIMEOUT`: Tempo máximo para graceful shutdown em segundos (30-300)
 
 ### 🔒 Validação de Configuração
 
@@ -62,6 +64,8 @@ O projeto inclui validação automática das configurações usando Zod. As segu
 - Tamanho do lote de workers deve estar entre 1 e 100
 - Número de workers deve estar entre 1 e 10
 - Intervalo de informação TR-069 deve estar entre 300 e 86400 segundos
+- TTL do worker deve estar entre 300 e 86400 segundos
+- Timeout do graceful shutdown deve estar entre 30 e 300 segundos
 
 ## 🛠️ Instalação
 
@@ -195,3 +199,23 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 - [Documentação do Puppeteer](https://pptr.dev/)
 - [Documentação do Jest](https://jestjs.io/docs/getting-started)
 - [Documentação do Zod](https://zod.dev/)
+
+## 🔄 Gerenciamento de Workers
+
+### TTL (Time-to-Live)
+Os workers possuem um tempo de vida máximo configurável através da variável `WORKER_TTL`. Após este período, o worker é automaticamente finalizado e um novo é criado em seu lugar. Isto ajuda a:
+
+- Prevenir vazamentos de memória
+- Garantir a liberação adequada de recursos
+- Manter o desempenho consistente do sistema
+
+### Graceful Shutdown
+O sistema implementa um mecanismo de graceful shutdown que:
+
+1. Captura sinais de término (SIGTERM/SIGINT)
+2. Para de aceitar novas tarefas
+3. Aguarda a conclusão das tarefas em andamento
+4. Fecha conexões e libera recursos ordenadamente
+5. Encerra o processo após o timeout configurado
+
+O timeout do graceful shutdown pode ser configurado através da variável `GRACEFUL_SHUTDOWN_TIMEOUT`.

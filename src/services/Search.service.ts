@@ -7,6 +7,7 @@ import { getLoginCDY } from "./CDY.service.ts";
 import { getLoginBR364 } from "./BR364.service.ts";
 import { type Radusuarios } from "../types/index.ts";
 import { logger } from "../util/logger.ts";
+
 /**
  * Asynchronously checks a user login in multiple services (BD, CDY, BR364).
  * If exactly one service has the user, returns its result.
@@ -20,7 +21,7 @@ import { logger } from "../util/logger.ts";
  */
 async function checkLoginInAllServices(login: string): Promise<Radusuarios | Error> {
     if (!login) {
-        return new Error('Login não informado');
+        return new Error('Login not provided');
     }
 
     const results = await Promise.all([
@@ -32,13 +33,13 @@ async function checkLoginInAllServices(login: string): Promise<Radusuarios | Err
     const successfulResults = results.filter(({ result }) => !(result instanceof Error));
 
     if (successfulResults.length === 1) {
-        logger.info(`🔍 Login ${login} encontrado em: ${successfulResults[0].service}`);
+        logger.info(`🔍 Login ${login} found in: ${successfulResults[0].service}`);
         return successfulResults[0].result;
     } else if (successfulResults.length > 1) {
         const services = successfulResults.map(({ service }) => service).join(', ');
-        return new Error(`Login ${login} encontrado em mais de um serviço: ${services}`);
+        return new Error(`Login ${login} found in multiple services: ${services}`);
     } else {
-        return new Error(`Login ${login} não encontrado em nenhum serviço`);
+        return new Error(`Login ${login} not found in any service`);
     }
 }
 

@@ -14,11 +14,11 @@ import { type Clearmac, type IxcData, type Radusuarios } from '../types/index.ts
 
 async function clearMacBR364(id: string): Promise<Clearmac | Error> {
     if (!Number(id)) {
-        return new Error('ID inválido');
+        return new Error('Invalid ID');
     }
 
     if (!id) {
-        return new Error('ID não informado');
+        return new Error('ID not provided');
     }
 
     const response = await IXCApi.post(IXCBASE.BR364, '/radusuarios_25452/', {
@@ -26,7 +26,7 @@ async function clearMacBR364(id: string): Promise<Clearmac | Error> {
     });
 
     if (!response) {
-        return new Error('Erro ao buscar ID' + response);
+        return new Error('Error fetching ID: ' + response);
     }
 
     return response.data;
@@ -43,7 +43,7 @@ async function clearMacBR364(id: string): Promise<Clearmac | Error> {
  */
 async function getLoginBR364(login: string): Promise<Error | Radusuarios> {
     if (!login) {
-        return new Error('Login não informado');
+        return new Error('Login not provided');
     }
     const response: AxiosResponse<IxcData<Radusuarios>> = await IXCApi.get(IXCBASE.BR364, '/radusuarios', {
         qtype: 'radusuarios.login',
@@ -52,13 +52,13 @@ async function getLoginBR364(login: string): Promise<Error | Radusuarios> {
     });
 
     if (!response) {
-        return new Error('Erro ao buscar login' + response);
+        return new Error('Error fetching login: ' + response);
     }
 
     if (response.data.registros) {
         return response.data.registros[0];
     }
-    return new Error('Login não encontrado');
+    return new Error('Login not found');
 }
 
 export { clearMacBR364, getLoginBR364 };

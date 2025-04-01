@@ -41,7 +41,7 @@ const DeviceConfigSchema = z.object({
 
 // Schema para configuração de workers
 const WorkerConfigSchema = z.object({
-    batchSize: z.number().int().min(1).max(100),
+    batchSize: z.number().int().min(1).max(200),
     poolSize: z.number().int().min(1).max(10)
 });
 

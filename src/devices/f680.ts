@@ -15,41 +15,39 @@ export class F680 {
     }
 
     private async checkWan(element: Frame) {
-
-        const wan = await element.$$eval('#Frm_WANCName0 option', options => {
-            return options.map(option => {
-                const value = option.getAttribute('value');
-                const text = option.textContent;
-                return { value, text };
+        try {
+            const wans = await element.$$eval('#Frm_WANCName0 option', options => {
+                return options.map(option => ({
+                    value: option.getAttribute('value'),
+                    text: option.textContent?.trim()
+                }));
             });
-        });
 
-        const wanName = wan.find(wan => {
+            // Verifica se já existe um WAN Internet_TR069 ou omci
+            const hasTargetWan = wans.some(wan =>
+                wan.text && (
+                    wan.text === 'Internet_TR069' ||
+                    wan.text.toLowerCase().includes('omci')
+                )
+            );
 
-            if (wan.value === null || wan.text === null) {
+            if (!hasTargetWan) {
+                logger.info('❌ WAN Internet_TR069 não configurado.');
                 return false;
             }
 
-            return wan.text === 'Internet_TR069' || wan.text.includes('omci');
-
-
-        });
-
-        if (!wanName) {
-            logger.info('❌ WAN not configured.');
-            return false;
-        } else {
+            logger.info('✅ WAN Internet_TR069 encontrado.');
             return true;
+        } catch (error) {
+            logger.error(`❌ Erro ao verificar WANs: ${error}`);
+            return false;
         }
-
     }
 
     async configureWan() {
-
         const LinkMode = {
             'PPP': 'PPPoE', 'IP': 'DHCP'
         };
-
 
         const UserAuth: {
             type: string,
@@ -69,7 +67,6 @@ export class F680 {
             name: 'Internet_TR069'
         };
 
-
         const iframe = this.page.frames().find(frame => frame.name() === 'mainFrame');
         if (!iframe) {
             logger.error('❌ Iframe with name "mainFrame" not found.');
@@ -79,28 +76,88 @@ export class F680 {
         await iframe.waitForSelector('#Fnt_mmNet');
         await iframe.click('#Fnt_mmNet');
 
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await iframe.waitForNavigation({ waitUntil: 'networkidle2' });
+        await iframe.waitForSelector('#Frm_WANCName0');
 
-        await iframe.select('#Frm_WANCName0', "IGD.WD1.WCD1.WCPPP2");
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        await iframe.waitForSelector('#Frm_UserName');
-
-        const wanChecker = await this.checkWan(iframe)
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
 
-        if (wanChecker) {
-            logger.info('WAN already configured.');
+        // Busca todos os WANs disponíveis
+        const wans = await iframe.$$eval('#Frm_WANCName0 option', options => {
+            return options.map(option => ({
+                value: option.getAttribute('value'),
+                text: option.textContent?.trim()
+            }));
+        });
+
+        // Procura por um WAN existente que não seja Internet_TR069
+        const existingWan = wans.find(wan =>
+            wan.value &&
+            wan.value !== '-1' &&
+            wan.text &&
+            !wan.text.includes('Internet_TR069') &&
+            !wan.text.includes('omci')
+        );
+
+        // Se encontrou um WAN existente, seleciona ele para configuração
+        if (existingWan && existingWan.value) {
+            logger.info(`Selecionando WAN existente: ${existingWan.text}`);
+            await iframe.select('#Frm_WANCName0', existingWan.value);
+        } else {
+            logger.info('Nenhum WAN existente encontrado para configuração');
             return UserAuth;
         }
 
+        await iframe.waitForNavigation({ waitUntil: 'networkidle2' });
+
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        await iframe.waitForSelector('#Frm_UserName');
+
+        const wanChecker = await this.checkWan(iframe);
+
+        if (wanChecker) {
+            const linkType = await iframe.$eval('#Frm_linkMode', (el => (el as HTMLInputElement).value));
+            logger.info('WAN already configured.');
+            UserAuth.type = LinkMode[linkType as keyof typeof LinkMode];
+            return UserAuth;
+        }
 
         UserAuth.user = await iframe.$eval('#Frm_UserName', (el => (el as HTMLInputElement).value));
         const linkType = await iframe.$eval('#Frm_linkMode', (el => (el as HTMLInputElement).value));
 
         if (linkType !== 'PPP') {
             logger.info('IPOE CONFIGURED');
+            UserAuth.vlan = await iframe.$eval('#Frm_VLANID', (el => (el as HTMLInputElement).value));
+            UserAuth.priority = await iframe.$eval('#Frm_Priority', (el => (el as HTMLInputElement).value));
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await iframe.select('#Frm_WANCName0', "-1");
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await iframe.type('#Frm_WANCName1', UserAuth.name);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await iframe.click('#Frm_WBDMode');
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await iframe.select('#Frm_ServList', '3');
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await iframe.select('#Frm_linkMode', 'IP');
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await iframe.select('#Frm_Priority', UserAuth.priority);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await iframe.type('#Frm_VLANID', UserAuth.vlan);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await iframe.select('#Frm_IsAuto', '1');
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await iframe.select('#Frm_Prefix', 'DHCP');
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await iframe.click('#Frm_IsPdAddr');
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await iframe.click('#Btn_Add');
+            await iframe.waitForNavigation({ waitUntil: 'networkidle2' });
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            UserAuth.user = 'IPOE';
+
             return UserAuth;
         }
 
@@ -114,7 +171,6 @@ export class F680 {
         UserAuth.pass = loginResult.senha;
         UserAuth.vlan = await iframe.$eval('#Frm_VLANID', (el => (el as HTMLInputElement).value));
         UserAuth.priority = await iframe.$eval('#Frm_Priority', (el => (el as HTMLInputElement).value));
-
 
         await iframe.select('#Frm_WANCName0', "-1");
 
@@ -141,19 +197,14 @@ export class F680 {
         await new Promise(resolve => setTimeout(resolve, 1000));
         await iframe.click('#Btn_Add');
 
-
-
-
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         logger.info(`✅ WAN configured successfully on ${this.device}!`);
         return UserAuth;
-
-
     }
 
     private async configureTR069(wan: string) {
-        logger.info('⚙️ Configuring TR-069 for F680...');
+        logger.info('⚙️ Configuring TR-069 for ' + this.device + '...');
 
         // Navigate to TR-069 configuration page
         await this.navigateToTR069Page();
@@ -169,7 +220,7 @@ export class F680 {
 
         await this.fillTR069Form(iframe, wan);
 
-        logger.info('✅ TR-069 configured successfully on F680!');
+        logger.info('✅ TR-069 configured successfully on ' + this.device + '!');
     }
 
     private async navigateToTR069Page() {
@@ -270,7 +321,7 @@ export class F680 {
 
         logger.info('📨 Form submitted successfully!');
 
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     private async ensureCheckboxChecked(iframe: Frame, selector: string) {
@@ -302,6 +353,7 @@ export class F680 {
             });
         });
 
+
         const wanName = wan.filter(wan => {
 
             if (wan.value === null || wan.text === null) {
@@ -309,7 +361,7 @@ export class F680 {
             }
 
             // Filter out 'Internet_TR069' and 'omci' options
-            return !wan.text.includes('Internet_TR069') && !wan.text.includes('omci') && !wan.text.toLowerCase().includes('ipoe') && wan.value !== '-1';
+            return !wan.text.includes('Internet_TR069') && !wan.text.includes('omci') && wan.value !== '-1';
 
         });
 
@@ -351,7 +403,8 @@ export class F680 {
 
             await this.configureTR069(wan.name);
 
-            if (wan.user === 'multipro') {
+
+            if (wan.user === 'multipro' && wan.type === 'PPPoE') {
                 return wan;
             }
 

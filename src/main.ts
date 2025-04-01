@@ -135,7 +135,7 @@ const retryFailedLogins = async (pool: WorkerPool, loginErrorFilePath: string, l
  * @description Main function to process IPs, configure devices, and update CSV.
  */
 (async () => {
-    const csvFilePath = path.join(__dirname, 'resources/radusuarios-bd-1743046670958.csv');
+    const csvFilePath = path.join(__dirname, 'resources/radusuarios-bd-1743385861471.csv');
     const workersPath = path.join(__dirname, 'workers/worker.js');
     const ips = await readIPColumnFromCSV(csvFilePath);
 

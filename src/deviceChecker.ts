@@ -52,6 +52,21 @@ export class DeviceChecker {
                 return 'F670L';
             }
 
+            if (modelF6600P && modelF6600P.includes('H196')) {
+                logger.info(`✅ Detected device: ${modelF6600P}`);
+                return 'H196';
+            }
+
+            if (modelF6600P && modelF6600P.includes('H199')) {
+                logger.info(`✅ Detected device: ${modelF6600P}`);
+                return 'H199';
+            }
+
+            if (modelF6600P && modelF6600P.includes('H3601')) {
+                logger.info(`✅ Detected device: ${modelF6600P}`);
+                return 'H3601';
+            }
+
             return new Error('❌ Device detection failed.');
 
         }

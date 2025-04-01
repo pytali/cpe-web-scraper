@@ -5,9 +5,11 @@ import { Login } from './auth/login.ts';
 import { DeviceChecker } from './deviceChecker.ts';
 import { F680 } from './devices/f680.ts';
 import { F6600P } from './devices/f6600p.ts';
+import { H199 } from './devices/h199.ts';
 import * as fs from "node:fs";
 import { DEVICE_CONFIG } from './config/index.ts';
 import { logger } from './util/logger.ts';
+import { H196 } from './devices/h196.ts';
 interface ConfigureDevicesResult {
     type: string;
     user: string;
@@ -114,6 +116,21 @@ export async function configureDevices(deviceIP: string, loginUser: string): Pro
         return result;
     } else if (detectedDevice === 'F6600P' || detectedDevice === 'F670L') {
         const device = new F6600P(page.page, detectedDevice);
+        const result = await device.run();
+        await login.close();
+        return result;
+    } else if (detectedDevice === 'H199') {
+        const device = new H199(page.page, detectedDevice);
+        const result = await device.run();
+        await login.close();
+        return result;
+    } else if (detectedDevice === 'H196') {
+        const device = new H196(page.page, detectedDevice);
+        const result = await device.run();
+        await login.close();
+        return result;
+    } else if (detectedDevice === 'H3601') {
+        const device = new H196(page.page, detectedDevice);
         const result = await device.run();
         await login.close();
         return result;

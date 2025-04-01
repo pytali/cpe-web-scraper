@@ -7,6 +7,8 @@ class WorkerPool {
     private taskQueue: string[] = [];
     private activeWorkers: Set<Worker> = new Set();
     private isShuttingDown: boolean = false;
+    private readonly WORKER_TTL = 30000; // 30 segundos em milissegundos
+    private workerTimers: Map<Worker, NodeJS.Timeout> = new Map();
 
     /**
      * Creates an instance of WorkerPool.
@@ -19,6 +21,22 @@ class WorkerPool {
     }
 
     /**
+     * Termina um worker e limpa seus recursos associados
+     * @param {Worker} worker - O worker a ser terminado
+     * @param {string} reason - O motivo do término
+     */
+    private terminateWorker(worker: Worker, reason: string): void {
+        const timer = this.workerTimers.get(worker);
+        if (timer) {
+            clearTimeout(timer);
+            this.workerTimers.delete(worker);
+        }
+        this.activeWorkers.delete(worker);
+        worker.terminate();
+        logger.warn(`Worker terminado: ${reason}`);
+    }
+
+    /**
      * Runs a worker to process a given IP.
      * @param {string} ip - The IP address to be processed by the worker.
      * @param {string} loginUser - The username for device login.
@@ -27,6 +45,19 @@ class WorkerPool {
     private runWorker(ip: string, loginUser: string): Promise<{ ip: string; result: any }> {
         return new Promise((resolve, reject) => {
             const worker = new Worker(this.workerPath, { workerData: { ip, loginUser } });
+
+            // Configura o timer de TTL
+            const ttlTimer = setTimeout(() => {
+                this.terminateWorker(worker, `TTL excedido (${this.WORKER_TTL}ms) para IP ${ip}`);
+                resolve({
+                    ip,
+                    result: {
+                        message: `Operação cancelada: tempo limite de ${this.WORKER_TTL / 1000} segundos excedido`
+                    }
+                });
+            }, this.WORKER_TTL);
+
+            this.workerTimers.set(worker, ttlTimer);
 
             worker.on('message', (msg) => {
                 if (msg.result && msg.result.message) {
@@ -38,9 +69,13 @@ class WorkerPool {
                 }
             });
 
-            worker.on('error', reject);
+            worker.on('error', (error) => {
+                this.terminateWorker(worker, `Erro no worker para IP ${ip}`);
+                reject(error);
+            });
+
             worker.on('exit', (code) => {
-                this.activeWorkers.delete(worker);
+                this.terminateWorker(worker, `Worker encerrado com código ${code}`);
                 if (code !== 0) reject(new Error(`Worker exited with code ${code}`));
             });
 
@@ -71,7 +106,7 @@ class WorkerPool {
 
         // Termina todos os workers ativos
         for (const worker of this.activeWorkers) {
-            worker.terminate();
+            this.terminateWorker(worker, 'Shutdown do pool');
         }
 
         this.activeWorkers.clear();

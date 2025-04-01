@@ -7,41 +7,74 @@ dist/
 .env.local
 .env.*.local
 .env.production
+.env.development
 !.env.example
 
 # Arquivos de teste
 coverage/
+.nyc_output/
 
 # Arquivos de log
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+logs/
+*.log.*
 
 # Arquivos do sistema
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Arquivos de IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+*.swn
+*.bak
+*.sublime*
+.history/
 
 # Arquivos de build
 *.js.map
 *.d.ts
+build/
+dist/
+out/
 
 # Arquivos temporários
 *.tmp
 *.temp
+.cache/
+.temp/
+tmp/
 
+# Arquivos específicos do projeto
 package-lock.json
 cpe-web-access.iml
 *.iml
-
-# Devices
 devices.json
 loginerror.json
-
 logs.env.test
+
+# Arquivos de certificado e chaves
+*.pem
+*.key
+*.crt
+*.csr
+*.srl
+*.p12
+*.pfx
+
+# Arquivos de backup
+*~
+*.bak
+*.backup
+*.old
+
+# Arquivos de debug
+.debug/
+debug.log
+debug/
